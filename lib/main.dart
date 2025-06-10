@@ -47,7 +47,10 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _checkAuthStatus();
+    // 使用 WidgetsBinding.instance.addPostFrameCallback 确保在build完成后执行
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAuthStatus();
+    });
   }
 
   /// 检查认证状态

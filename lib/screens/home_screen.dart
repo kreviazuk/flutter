@@ -50,183 +50,170 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF2196F3),
-              Colors.white,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 欢迎区域
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2196F3).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: const Icon(
+                            Icons.school,
+                            size: 30,
+                            color: Color(0xFF2196F3),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                '🔥 自动热重载测试成功！',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF333333),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Consumer<AuthProvider>(
+                                builder: (context, authProvider, child) {
+                                  return Text(
+                                    '用户ID: ${authProvider.userId ?? "加载中..."}',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // 功能模块区域
+              const Text(
+                '系统功能',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF333333),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // 功能网格
+              Expanded(
+                child: GridView.count(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  children: [
+                    _buildFeatureCard(
+                      icon: Icons.child_care,
+                      title: '学员管理',
+                      subtitle: '婴幼儿信息管理',
+                      color: Colors.blue,
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('学员管理功能开发中...')),
+                        );
+                      },
+                    ),
+                    _buildFeatureCard(
+                      icon: Icons.people,
+                      title: '人员管理',
+                      subtitle: '员工信息管理',
+                      color: Colors.green,
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('人员管理功能开发中...')),
+                        );
+                      },
+                    ),
+                    _buildFeatureCard(
+                      icon: Icons.access_time,
+                      title: '考勤管理',
+                      subtitle: '签到签退管理',
+                      color: Colors.orange,
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('考勤管理功能开发中...')),
+                        );
+                      },
+                    ),
+                    _buildFeatureCard(
+                      icon: Icons.restaurant,
+                      title: '食谱管理',
+                      subtitle: '营养餐单管理',
+                      color: Colors.purple,
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('食谱管理功能开发中...')),
+                        );
+                      },
+                    ),
+                    _buildFeatureCard(
+                      icon: Icons.medical_services,
+                      title: '健康管理',
+                      subtitle: '体检晨检管理',
+                      color: Colors.red,
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('健康管理功能开发中...')),
+                        );
+                      },
+                    ),
+                    _buildFeatureCard(
+                      icon: Icons.event,
+                      title: '活动管理',
+                      subtitle: '机构活动管理',
+                      color: Colors.teal,
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('活动管理功能开发中...')),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
             ],
-            stops: [0.0, 0.3],
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 欢迎区域
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2196F3).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: const Icon(
-                              Icons.school,
-                              size: 30,
-                              color: Color(0xFF2196F3),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  '欢迎回来！',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF333333),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Consumer<AuthProvider>(
-                                  builder: (context, authProvider, child) {
-                                    return Text(
-                                      '用户ID: ${authProvider.userId ?? "加载中..."}',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey[600],
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // 功能模块区域
-                const Text(
-                  '系统功能',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF333333),
-                  ),
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // 功能网格
-                Expanded(
-                  child: GridView.count(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    children: [
-                      _buildFeatureCard(
-                        icon: Icons.child_care,
-                        title: '学员管理',
-                        subtitle: '婴幼儿信息管理',
-                        color: Colors.blue,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('学员管理功能开发中...')),
-                          );
-                        },
-                      ),
-                      _buildFeatureCard(
-                        icon: Icons.people,
-                        title: '人员管理',
-                        subtitle: '员工信息管理',
-                        color: Colors.green,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('人员管理功能开发中...')),
-                          );
-                        },
-                      ),
-                      _buildFeatureCard(
-                        icon: Icons.access_time,
-                        title: '考勤管理',
-                        subtitle: '签到签退管理',
-                        color: Colors.orange,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('考勤管理功能开发中...')),
-                          );
-                        },
-                      ),
-                      _buildFeatureCard(
-                        icon: Icons.restaurant,
-                        title: '食谱管理',
-                        subtitle: '营养餐单管理',
-                        color: Colors.purple,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('食谱管理功能开发中...')),
-                          );
-                        },
-                      ),
-                      _buildFeatureCard(
-                        icon: Icons.medical_services,
-                        title: '健康管理',
-                        subtitle: '体检晨检管理',
-                        color: Colors.red,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('健康管理功能开发中...')),
-                          );
-                        },
-                      ),
-                      _buildFeatureCard(
-                        icon: Icons.event,
-                        title: '活动管理',
-                        subtitle: '机构活动管理',
-                        color: Colors.teal,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('活动管理功能开发中...')),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       ),
@@ -298,4 +285,4 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
-} 
+}

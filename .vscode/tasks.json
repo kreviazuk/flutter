@@ -1,0 +1,50 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Android自动热重载",
+            "type": "shell",
+            "command": "./scripts/android_auto_reload.sh",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "runOptions": {
+                "runOn": "default"
+            }
+        },
+        {
+            "label": "启动Android模拟器",
+            "type": "shell", 
+            "command": "flutter",
+            "args": ["emulators", "--launch", "Medium_Phone_API_35"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Android应用热重载运行",
+            "type": "shell",
+            "command": "flutter",
+            "args": ["run", "-d", "emulator-5554", "--hot"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always", 
+                "focus": true,
+                "panel": "new"
+            },
+            "dependsOn": "启动Android模拟器"
+        }
+    ]
+} 

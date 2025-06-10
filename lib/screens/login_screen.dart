@@ -18,7 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _codeController = TextEditingController();
   final _phoneFocusNode = FocusNode();
   final _codeFocusNode = FocusNode();
-  
+
   bool _isCodeSent = false;
   int _countdown = 0;
   Timer? _timer;
@@ -39,7 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _countdown = 60;
       _isCodeSent = true;
     });
-    
+
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_countdown <= 1) {
         timer.cancel();
@@ -58,10 +58,10 @@ class _LoginScreenState extends State<LoginScreen> {
   /// 发送验证码
   Future<void> _sendVerificationCode() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.sendVerificationCode(_phoneController.text.trim());
-    
+
     if (success) {
       _startCountdown();
       if (mounted) {
@@ -88,13 +88,13 @@ class _LoginScreenState extends State<LoginScreen> {
   /// 登录
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.login(
       _phoneController.text.trim(),
       _codeController.text.trim(),
     );
-    
+
     if (success) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -122,16 +122,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF2196F3),
-              Color(0xFF1976D2),
-            ],
-          ),
-        ),
         child: SafeArea(
           child: Consumer<AuthProvider>(
             builder: (context, authProvider, child) {
@@ -143,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const SizedBox(height: 80),
-                      
+
                       // Logo区域
                       Container(
                         width: 120,
@@ -165,31 +155,31 @@ class _LoginScreenState extends State<LoginScreen> {
                           color: Color(0xFF2196F3),
                         ),
                       ),
-                      
+
                       const SizedBox(height: 32),
-                      
+
                       // 标题
                       const Text(
-                        '托育机构管理系统',
+                        '🎯 托育机构管理系统 🏫',
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),
-                      
+
                       const SizedBox(height: 8),
-                      
+
                       const Text(
-                        '请输入手机号码进行登录',
+                        '🚀 请输入手机号码进行登录 📱',
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.white70,
                         ),
                       ),
-                      
+
                       const SizedBox(height: 48),
-                      
+
                       // 登录表单
                       Container(
                         padding: const EdgeInsets.all(24),
@@ -223,7 +213,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(color: Color(0xFF2196F3)),
                                 ),
                               ),
                               validator: (value) {
@@ -244,9 +233,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 }
                               },
                             ),
-                            
+
                             const SizedBox(height: 16),
-                            
+
                             // 验证码输入框和发送按钮
                             Row(
                               children: [
@@ -287,16 +276,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   width: 120,
                                   height: 56,
                                   child: ElevatedButton(
-                                    onPressed: (_countdown > 0 || authProvider.isLoading) 
-                                        ? null 
+                                    onPressed: (_countdown > 0 || authProvider.isLoading)
+                                        ? null
                                         : _sendVerificationCode,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.grey[100],
-                                      foregroundColor: const Color(0xFF2196F3),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
                                     child: authProvider.isLoading
                                         ? const SizedBox(
                                             width: 20,
@@ -304,16 +286,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                             child: CircularProgressIndicator(strokeWidth: 2),
                                           )
                                         : Text(
-                                            _countdown > 0 ? '${_countdown}s' : '获取验证码',
+                                            _countdown > 0 ? '${_countdown}s' : '🔥 自动热重载测试1',
                                             style: const TextStyle(fontSize: 12),
                                           ),
                                   ),
                                 ),
                               ],
                             ),
-                            
+
                             const SizedBox(height: 24),
-                            
+
                             // 登录按钮
                             SizedBox(
                               width: double.infinity,
@@ -344,9 +326,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                       ),
-                      
+
                       const SizedBox(height: 40),
-                      
+
                       // 底部说明
                       Text(
                         '登录即表示您同意相关服务条款',
