@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../widgets/permission_dialog.dart';
 import '../../core/services/permission_service.dart';
+import 'countdown_screen.dart';
 
 /// 🏠 主页面 - Phase 2 权限管理版本
 class HomeScreen extends StatefulWidget {
@@ -48,12 +49,23 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    // 权限已授权，可以开始跑步功能
+    // 权限已授权，开始倒计时
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('🎉 权限已授权！跑步功能即将上线...'),
-          backgroundColor: AppColors.success,
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => CountdownScreen(
+            onCountdownComplete: () {
+              // 倒计时完成后的处理
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('🏃‍♂️ 跑步开始！GPS追踪功能即将上线...'),
+                  backgroundColor: AppColors.success,
+                  duration: Duration(seconds: 3),
+                ),
+              );
+            },
+          ),
         ),
       );
     }
@@ -133,6 +145,37 @@ class _HomeScreenState extends State<HomeScreen> {
                   fontSize: 14,
                   color: AppColors.info,
                 ),
+              ),
+              const SizedBox(height: 20),
+              // 倒计时预览按钮
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => CountdownScreen(
+                        onCountdownComplete: () {
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('🎉 倒计时预览完成！'),
+                              backgroundColor: AppColors.info,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.info,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
+                ),
+                icon: const Icon(Icons.timer, size: 20),
+                label: const Text('预览倒计时', style: TextStyle(fontSize: 14)),
               ),
             ] else ...[
               const Text(
