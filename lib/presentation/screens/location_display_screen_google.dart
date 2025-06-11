@@ -61,7 +61,7 @@ class _LocationDisplayScreenGoogleState extends State<LocationDisplayScreenGoogl
     }
   }
 
-  /// 获取当前位置
+  /// 获取当前位置 - 优化以减少地图更新
   Future<void> _getCurrentLocation() async {
     try {
       setState(() {
@@ -69,7 +69,8 @@ class _LocationDisplayScreenGoogleState extends State<LocationDisplayScreenGoogl
       });
 
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        desiredAccuracy: LocationAccuracy.medium, // 降低精度减少系统负载
+        timeLimit: const Duration(seconds: 10), // 设置超时限制
       );
 
       setState(() {
@@ -78,9 +79,11 @@ class _LocationDisplayScreenGoogleState extends State<LocationDisplayScreenGoogl
         _locationStatus = '定位成功';
       });
 
-      // 更新地图位置
+      // 延迟更新地图位置，减少频繁更新
       if (_mapController != null) {
-        await _updateMapLocation();
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _updateMapLocation();
+        });
       }
     } catch (e) {
       setState(() {
@@ -90,36 +93,46 @@ class _LocationDisplayScreenGoogleState extends State<LocationDisplayScreenGoogl
     }
   }
 
-  /// 更新地图位置和标记
+  /// 更新地图位置和标记 - 优化以减少缓冲区压力
   Future<void> _updateMapLocation() async {
     if (_currentPosition == null || _mapController == null) return;
 
-    final LatLng currentLatLng = LatLng(
-      _currentPosition!.latitude,
-      _currentPosition!.longitude,
-    );
-
-    // 移动地图到当前位置
-    await _mapController!.animateCamera(
-      CameraUpdate.newLatLngZoom(currentLatLng, 16),
-    );
-
-    // 添加当前位置标记
-    setState(() {
-      _markers.clear();
-      _markers.add(
-        Marker(
-          markerId: const MarkerId('current_location'),
-          position: currentLatLng,
-          infoWindow: InfoWindow(
-            title: '我的位置',
-            snippet: '纬度: ${_currentPosition!.latitude.toStringAsFixed(6)}\n'
-                '经度: ${_currentPosition!.longitude.toStringAsFixed(6)}',
-          ),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-        ),
+    try {
+      final LatLng currentLatLng = LatLng(
+        _currentPosition!.latitude,
+        _currentPosition!.longitude,
       );
-    });
+
+      // 使用较慢的移动动画减少渲染压力
+      await _mapController!.animateCamera(
+        CameraUpdate.newLatLngZoom(currentLatLng, 15), // 降低缩放级别
+        // 注意：不设置过快的动画时间
+      );
+
+      // 只在确实需要时更新标记，减少setState调用
+      if (_markers.isEmpty ||
+          _markers.first.position.latitude != currentLatLng.latitude ||
+          _markers.first.position.longitude != currentLatLng.longitude) {
+        setState(() {
+          _markers.clear();
+          _markers.add(
+            Marker(
+              markerId: const MarkerId('current_location'),
+              position: currentLatLng,
+              infoWindow: InfoWindow(
+                title: '我的位置',
+                snippet:
+                    '${_currentPosition!.latitude.toStringAsFixed(4)}, ${_currentPosition!.longitude.toStringAsFixed(4)}',
+              ),
+              // 使用默认图标减少渲染负载
+              icon: BitmapDescriptor.defaultMarker,
+            ),
+          );
+        });
+      }
+    } catch (e) {
+      debugPrint('地图更新失败: $e');
+    }
   }
 
   @override
@@ -140,7 +153,7 @@ class _LocationDisplayScreenGoogleState extends State<LocationDisplayScreenGoogl
       ),
       body: Stack(
         children: [
-          // Google地图
+          // Google地图 - 优化配置以解决缓冲区问题
           GoogleMap(
             initialCameraPosition: CameraPosition(
               target: _isLocationLoaded && _currentPosition != null
@@ -155,16 +168,35 @@ class _LocationDisplayScreenGoogleState extends State<LocationDisplayScreenGoogl
               }
             },
             markers: _markers,
-            myLocationEnabled: true,
+
+            // 位置相关设置 - 优化以减少缓冲区压力
+            myLocationEnabled: false, // 禁用内置位置显示，用自定义标记代替
             myLocationButtonEnabled: false,
+
+            // 地图控件 - 最小化UI元素
             zoomControlsEnabled: false,
-            compassEnabled: true,
+            compassEnabled: false, // 禁用指南针减少渲染负载
             mapToolbarEnabled: false,
+
+            // 地图特性 - 禁用所有非必要特性
             buildingsEnabled: false,
             trafficEnabled: false,
             indoorViewEnabled: false,
+
+            // 手势控制 - 限制交互减少渲染
             rotateGesturesEnabled: false,
             tiltGesturesEnabled: false,
+            scrollGesturesEnabled: true, // 保留滚动
+            zoomGesturesEnabled: true, // 保留缩放
+
+            // 地图类型 - 使用最轻量的地图
+            mapType: MapType.normal,
+
+            // 最小缩放限制 - 减少细节渲染
+            minMaxZoomPreference: const MinMaxZoomPreference(10, 20),
+
+            // 禁用平面模式
+            liteModeEnabled: true, // 启用轻量模式
           ),
 
           // 顶部状态卡片

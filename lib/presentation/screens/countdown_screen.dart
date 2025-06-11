@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import '../theme/app_colors.dart';
-import 'location_display_screen_google.dart';
+import 'location_display_screen_pure.dart';
 
 /// 🏁 马里奥赛车风格倒计时页面
 class CountdownScreen extends StatefulWidget {
@@ -194,7 +194,7 @@ class _CountdownScreenState extends State<CountdownScreen> with TickerProviderSt
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => const LocationDisplayScreenGoogle(),
+            builder: (context) => const LocationDisplayScreenPure(),
           ),
         );
       }
