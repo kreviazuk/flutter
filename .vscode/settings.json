@@ -11,5 +11,6 @@
   "dart.flutterCreateAndroidLanguage": "kotlin",
   "dart.flutterCreateIOSLanguage": "swift",
   "dart.debugExternalPackageLibraries": false,
-  "dart.debugSdkLibraries": false
+  "dart.debugSdkLibraries": false,
+  "java.configuration.updateBuildConfiguration": "automatic"
 } 
