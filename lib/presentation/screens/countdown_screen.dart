@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import '../theme/app_colors.dart';
+import 'location_display_screen_google.dart';
 
 /// 🏁 马里奥赛车风格倒计时页面
 class CountdownScreen extends StatefulWidget {
@@ -188,9 +189,15 @@ class _CountdownScreenState extends State<CountdownScreen> with TickerProviderSt
     // 最终的GO动画
     HapticFeedback.heavyImpact();
 
-    // 等待动画完成后调用回调
+    // 等待动画完成后跳转到位置显示页面
     Timer(const Duration(milliseconds: 1500), () {
-      widget.onCountdownComplete?.call();
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const LocationDisplayScreenGoogle(),
+          ),
+        );
+      }
     });
   }
 

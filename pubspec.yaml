@@ -40,6 +40,7 @@ dependencies:
   # 位置和地图
   geolocator: ^10.1.0
   location: ^5.0.3
+  # 添加Google Maps作为备用方案
   google_maps_flutter: ^2.5.3
 
   # 数据存储
