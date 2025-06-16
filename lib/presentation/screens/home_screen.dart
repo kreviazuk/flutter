@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../theme/app_colors.dart';
 import '../widgets/permission_dialog.dart';
 import '../../core/services/permission_service.dart';
@@ -15,6 +16,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool _hasPermissions = false;
   bool _isCheckingPermissions = true;
+  Position? _currentPosition;
+  bool _isGettingLocation = false;
+  String _locationStatus = '';
 
   @override
   void initState() {
@@ -28,6 +32,46 @@ class _HomeScreenState extends State<HomeScreen> {
       _hasPermissions = hasPermissions;
       _isCheckingPermissions = false;
     });
+
+    // 如果权限已授权，立即开始获取位置
+    if (hasPermissions) {
+      _startGettingLocation();
+    }
+  }
+
+  Future<void> _startGettingLocation() async {
+    setState(() {
+      _isGettingLocation = true;
+      _locationStatus = '正在获取位置...';
+    });
+
+    try {
+      // 检查GPS服务
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() {
+          _locationStatus = 'GPS服务未开启';
+          _isGettingLocation = false;
+        });
+        return;
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 15),
+      );
+
+      setState(() {
+        _currentPosition = position;
+        _isGettingLocation = false;
+        _locationStatus = '位置已就绪';
+      });
+    } catch (e) {
+      setState(() {
+        _locationStatus = '获取位置失败';
+        _isGettingLocation = false;
+      });
+    }
   }
 
   Future<void> _showPermissionDialog() async {
@@ -49,11 +93,13 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    // 权限已授权，开始倒计时
+    // 权限已授权，开始倒计时，并传递位置信息
     if (mounted) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => const CountdownScreen(),
+          builder: (context) => CountdownScreen(
+            currentPosition: _currentPosition, // 传递位置信息
+          ),
         ),
       );
     }
@@ -155,6 +201,55 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 textAlign: TextAlign.center,
               ),
+
+              // 位置状态显示
+              if (_hasPermissions) ...[
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_isGettingLocation) ...[
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ] else if (_currentPosition != null) ...[
+                        const Icon(
+                          Icons.location_on,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                      ] else ...[
+                        const Icon(
+                          Icons.location_off,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      Text(
+                        _locationStatus.isEmpty ? '准备获取位置' : _locationStatus,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 48),
 

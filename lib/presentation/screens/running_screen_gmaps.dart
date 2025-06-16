@@ -6,7 +6,12 @@ import '../theme/app_colors.dart';
 
 /// 🏃‍♂️ 跑步追踪页面 - 使用 Google Maps
 class RunningScreenGMaps extends StatefulWidget {
-  const RunningScreenGMaps({super.key});
+  final Position? initialPosition;
+
+  const RunningScreenGMaps({
+    super.key,
+    this.initialPosition,
+  });
 
   @override
   State<RunningScreenGMaps> createState() => _RunningScreenGMapsState();
@@ -19,6 +24,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> {
   Position? _currentPosition;
   Position? _lastPosition;
   StreamSubscription<Position>? _positionSubscription;
+  bool _isLocationLoaded = false; // 新增：位置是否已加载
 
   // 地图和路线数据
   final Set<Marker> _markers = {};
@@ -28,7 +34,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> {
   // 跑步状态
   bool _isRunning = false;
   bool _isPaused = false;
-  String _statusMessage = '准备开始';
+  String _statusMessage = '正在获取位置...';
 
   // 跑步数据
   double _totalDistance = 0.0; // 总距离（米）
@@ -44,7 +50,24 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> {
   @override
   void initState() {
     super.initState();
-    _initializeLocation();
+
+    // 如果已经有位置信息，直接使用
+    if (widget.initialPosition != null) {
+      setState(() {
+        _currentPosition = widget.initialPosition;
+        _isLocationLoaded = true;
+        _statusMessage = 'GPS就绪，可以开始跑步了！';
+      });
+      // 等待一小段时间确保UI构建完成，然后添加标记
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_mapController != null) {
+          _updateMapLocation();
+        }
+      });
+    } else {
+      // 否则重新获取位置
+      _initializeLocation();
+    }
   }
 
   @override
@@ -58,12 +81,15 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> {
   Future<void> _initializeLocation() async {
     try {
       setState(() {
-        _statusMessage = '正在初始化GPS...';
+        _statusMessage = '正在检查位置权限...';
       });
 
       // 检查并请求位置权限
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
+        setState(() {
+          _statusMessage = '正在申请位置权限...';
+        });
         permission = await Geolocator.requestPermission();
       }
 
@@ -90,12 +116,12 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> {
         return;
       }
 
+      setState(() {
+        _statusMessage = '正在获取当前位置...';
+      });
+
       // 获取初始位置
       await _getCurrentLocation();
-
-      setState(() {
-        _statusMessage = 'GPS就绪，可以开始跑步了！';
-      });
     } catch (e) {
       setState(() {
         _statusMessage = '初始化失败: ${e.toString()}';
@@ -113,9 +139,14 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> {
 
       setState(() {
         _currentPosition = position;
+        _isLocationLoaded = true; // 位置已加载
+        _statusMessage = 'GPS就绪，可以开始跑步了！';
       });
 
-      await _updateMapLocation();
+      // 等待一小段时间确保地图已创建，然后更新位置
+      if (_mapController != null) {
+        await _updateMapLocation();
+      }
     } catch (e) {
       setState(() {
         _statusMessage = '获取位置失败: ${e.toString()}';
@@ -350,32 +381,117 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> {
     return speedKmh.toStringAsFixed(1);
   }
 
+  /// 构建统计项目
+  Widget _buildStatItem(String label, String value) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // Google地图
-          GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: _currentPosition != null
-                  ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
-                  : _defaultLocation,
-              zoom: 16,
+          // 根据位置加载状态显示不同内容
+          if (_isLocationLoaded && _currentPosition != null) ...[
+            // Google地图 - 只有在获取到位置后才显示
+            GoogleMap(
+              initialCameraPosition: CameraPosition(
+                target: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                zoom: 18,
+              ),
+              onMapCreated: (GoogleMapController controller) {
+                _mapController = controller;
+                // 地图创建后立即更新位置（如果有位置信息）
+                if (_currentPosition != null) {
+                  _updateMapLocation();
+                }
+              },
+              markers: _markers,
+              polylines: _polylines,
+              myLocationEnabled: false,
+              myLocationButtonEnabled: false,
+              zoomControlsEnabled: false,
+              mapType: MapType.normal,
             ),
-            onMapCreated: (GoogleMapController controller) {
-              _mapController = controller;
-              if (_currentPosition != null) {
-                _updateMapLocation();
-              }
-            },
-            markers: _markers,
-            polylines: _polylines,
-            myLocationEnabled: false,
-            myLocationButtonEnabled: false,
-            zoomControlsEnabled: false,
-            mapType: MapType.normal,
-          ),
+          ] else ...[
+            // 加载界面
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    AppColors.primary.withOpacity(0.8),
+                    AppColors.secondary.withOpacity(0.6),
+                  ],
+                ),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // 加载动画
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        strokeWidth: 3,
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // 加载文本
+                    Text(
+                      _statusMessage,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // 提示文本
+                    Text(
+                      '📍 正在为您定位最佳起跑点',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white.withOpacity(0.8),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
 
           // 顶部状态栏
           Positioned(
@@ -398,146 +514,125 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> {
                       textAlign: TextAlign.center,
                     ),
                   ),
-                  IconButton(
-                    onPressed: _getCurrentLocation,
-                    icon: const Icon(Icons.my_location, color: Colors.white),
-                  ),
+                  if (_isLocationLoaded)
+                    IconButton(
+                      onPressed: _getCurrentLocation,
+                      icon: const Icon(Icons.my_location, color: Colors.white),
+                    ),
                 ],
               ),
             ),
           ),
 
-          // 跑步数据卡片
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 80,
-            left: 16,
-            right: 16,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+          // 跑步数据卡片 - 只有在位置加载后才显示
+          if (_isLocationLoaded) ...[
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 80,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildStatItem('距离', '${(_totalDistance / 1000).toStringAsFixed(2)} km'),
+                    _buildStatItem('时间', _formatTime(_elapsedTime)),
+                    _buildStatItem('速度', '${_formatSpeed(_currentSpeed)} km/h'),
+                    _buildStatItem('卡路里', '$_calories'),
+                  ],
+                ),
               ),
+            ),
+
+            // 底部控制按钮
+            Positioned(
+              bottom: MediaQuery.of(context).padding.bottom + 20,
+              left: 20,
+              right: 20,
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildStatItem('距离', '${(_totalDistance / 1000).toStringAsFixed(2)} km'),
-                  _buildStatItem('时间', _formatTime(_elapsedTime)),
-                  _buildStatItem('速度', '${_formatSpeed(_currentSpeed)} km/h'),
-                  _buildStatItem('卡路里', '$_calories'),
+                  if (!_isRunning) ...[
+                    // 开始按钮
+                    ElevatedButton(
+                      onPressed: _currentPosition != null ? _startRunning : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.success,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.play_arrow),
+                          SizedBox(width: 8),
+                          Text('开始跑步'),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    // 暂停/继续按钮
+                    ElevatedButton(
+                      onPressed: _pauseRunning,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _isPaused ? AppColors.success : AppColors.warning,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(_isPaused ? Icons.play_arrow : Icons.pause),
+                          const SizedBox(width: 8),
+                          Text(_isPaused ? '继续' : '暂停'),
+                        ],
+                      ),
+                    ),
+
+                    // 停止按钮
+                    ElevatedButton(
+                      onPressed: _stopRunning,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.error,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.stop),
+                          SizedBox(width: 8),
+                          Text('结束'),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
-          ),
-
-          // 底部控制按钮
-          Positioned(
-            bottom: MediaQuery.of(context).padding.bottom + 20,
-            left: 20,
-            right: 20,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                if (!_isRunning) ...[
-                  // 开始按钮
-                  ElevatedButton(
-                    onPressed: _currentPosition != null ? _startRunning : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.success,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.play_arrow),
-                        SizedBox(width: 8),
-                        Text('开始跑步'),
-                      ],
-                    ),
-                  ),
-                ] else ...[
-                  // 暂停/继续按钮
-                  ElevatedButton(
-                    onPressed: _pauseRunning,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _isPaused ? AppColors.success : AppColors.warning,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(_isPaused ? Icons.play_arrow : Icons.pause),
-                        const SizedBox(width: 8),
-                        Text(_isPaused ? '继续' : '暂停'),
-                      ],
-                    ),
-                  ),
-
-                  // 停止按钮
-                  ElevatedButton(
-                    onPressed: _stopRunning,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.error,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.stop),
-                        SizedBox(width: 8),
-                        Text('结束'),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
+          ],
         ],
       ),
-    );
-  }
-
-  Widget _buildStatItem(String label, String value) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppColors.primary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
     );
   }
 }

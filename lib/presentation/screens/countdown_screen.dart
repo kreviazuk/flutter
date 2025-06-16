@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import '../theme/app_colors.dart';
@@ -8,10 +9,12 @@ import 'running_screen_gmaps.dart';
 /// 🏁 马里奥赛车风格倒计时页面
 class CountdownScreen extends StatefulWidget {
   final VoidCallback? onCountdownComplete;
+  final Position? currentPosition;
 
   const CountdownScreen({
     super.key,
     this.onCountdownComplete,
+    this.currentPosition,
   });
 
   @override
@@ -194,7 +197,9 @@ class _CountdownScreenState extends State<CountdownScreen> with TickerProviderSt
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => const RunningScreenGMaps(),
+            builder: (context) => RunningScreenGMaps(
+              initialPosition: widget.currentPosition, // 传递位置信息
+            ),
           ),
         );
       }
