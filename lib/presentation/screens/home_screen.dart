@@ -4,7 +4,7 @@ import '../widgets/permission_dialog.dart';
 import '../../core/services/permission_service.dart';
 import 'countdown_screen.dart';
 
-/// 🏠 主页面 - Phase 2 权限管理版本
+/// 🏠 主页面 - 简化版本
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -53,19 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => CountdownScreen(
-            onCountdownComplete: () {
-              // 倒计时完成后的处理
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('🏃‍♂️ 跑步开始！GPS追踪功能即将上线...'),
-                  backgroundColor: AppColors.success,
-                  duration: Duration(seconds: 3),
-                ),
-              );
-            },
-          ),
+          builder: (context) => const CountdownScreen(),
         ),
       );
     }
@@ -99,6 +87,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('🏃‍♂️ 跑步追踪器'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
           if (!_hasPermissions)
             IconButton(
@@ -111,103 +102,127 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
         ],
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              _hasPermissions ? Icons.directions_run : Icons.security,
-              size: 100,
-              color: _hasPermissions ? AppColors.primary : AppColors.warning,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              _hasPermissions ? '准备开始你的跑步之旅！' : '需要权限才能开始跑步',
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            if (_hasPermissions) ...[
-              const Text(
-                'Phase 2: 权限管理已完成 ✅',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppColors.success,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                '接下来：Phase 3 添加GPS追踪功能',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.info,
-                ),
-              ),
-              const SizedBox(height: 20),
-              // 倒计时预览按钮
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => CountdownScreen(
-                        onCountdownComplete: () {
-                          Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('🎉 倒计时预览完成！'),
-                              backgroundColor: AppColors.info,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.info,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 8,
-                  ),
-                ),
-                icon: const Icon(Icons.timer, size: 20),
-                label: const Text('预览倒计时', style: TextStyle(fontSize: 14)),
-              ),
-            ] else ...[
-              const Text(
-                '请授权位置权限以使用跑步功能',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: _showPermissionDialog,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                ),
-                icon: const Icon(Icons.security),
-                label: const Text('申请权限'),
-              ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppColors.primary,
+              AppColors.secondary,
             ],
-          ],
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _startRunning,
-        backgroundColor: _hasPermissions ? AppColors.primary : AppColors.warning,
-        icon: Icon(_hasPermissions ? Icons.play_arrow : Icons.security),
-        label: Text(_hasPermissions ? '开始跑步' : '需要权限'),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // 主图标
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _hasPermissions ? Icons.directions_run : Icons.security,
+                  size: 120,
+                  color: Colors.white,
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // 主标题
+              Text(
+                _hasPermissions ? '准备开始你的跑步之旅！' : '需要权限才能开始跑步',
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 16),
+
+              // 副标题
+              Text(
+                _hasPermissions ? '点击下方按钮开始你的健康运动' : '请授权位置权限以使用跑步功能',
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.white70,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 48),
+
+              // 主要操作按钮
+              if (_hasPermissions) ...[
+                ElevatedButton(
+                  onPressed: _startRunning,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 48,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    elevation: 8,
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.play_arrow, size: 28),
+                      SizedBox(width: 12),
+                      Text(
+                        '开始跑步',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                ElevatedButton(
+                  onPressed: _showPermissionDialog,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 48,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    elevation: 8,
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.security, size: 28),
+                      SizedBox(width: 12),
+                      Text(
+                        '申请权限',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
