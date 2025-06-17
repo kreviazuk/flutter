@@ -12,7 +12,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     
     <application
-        android:label="my_flutter_app"
+        android:label="跑步追踪器"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         
