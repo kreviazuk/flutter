@@ -14,7 +14,8 @@
     <application
         android:label="跑步追踪器"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:networkSecurityConfig="@xml/network_security_config">
         
         <!-- Google Maps API Key -->
         <meta-data android:name="com.google.android.geo.API_KEY"

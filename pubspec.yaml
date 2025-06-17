@@ -51,6 +51,9 @@ dependencies:
   # 权限管理
   permission_handler: ^11.0.1
 
+  # 网络请求
+  http: ^1.1.0
+
   # 实用工具
   intl: ^0.19.0
 

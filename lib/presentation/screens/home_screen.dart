@@ -3,9 +3,12 @@ import 'package:geolocator/geolocator.dart';
 import '../theme/app_colors.dart';
 import '../widgets/permission_dialog.dart';
 import '../../core/services/permission_service.dart';
+import '../../core/services/auth_service.dart';
+import '../../data/models/user.dart';
 import 'countdown_screen.dart';
+import 'auth_screen.dart';
 
-/// 🏠 主页面 - 简化版本
+/// 🏠 主页面 - 带用户认证功能
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -20,10 +23,57 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isGettingLocation = false;
   String _locationStatus = '';
 
+  // 用户认证相关
+  User? _currentUser;
+  bool _isLoggedIn = false;
+  bool _isCheckingAuth = true;
+
   @override
   void initState() {
     super.initState();
-    _checkPermissions();
+    _initializeApp();
+  }
+
+  /// 初始化应用
+  Future<void> _initializeApp() async {
+    // 并行检查认证状态和权限
+    await Future.wait([
+      _checkAuthStatus(),
+      _checkPermissions(),
+    ]);
+  }
+
+  /// 检查用户认证状态
+  Future<void> _checkAuthStatus() async {
+    setState(() {
+      _isCheckingAuth = true;
+    });
+
+    try {
+      final isLoggedIn = await AuthService.isLoggedIn();
+      if (isLoggedIn) {
+        final savedUser = await AuthService.getSavedUser();
+        setState(() {
+          _isLoggedIn = true;
+          _currentUser = savedUser;
+        });
+      } else {
+        setState(() {
+          _isLoggedIn = false;
+          _currentUser = null;
+        });
+      }
+    } catch (e) {
+      print('检查认证状态失败: $e');
+      setState(() {
+        _isLoggedIn = false;
+        _currentUser = null;
+      });
+    }
+
+    setState(() {
+      _isCheckingAuth = false;
+    });
   }
 
   Future<void> _checkPermissions() async {
@@ -87,7 +137,121 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// 显示登录页面
+  Future<void> _showAuthScreen() async {
+    final result = await Navigator.of(context).push<User>(
+      MaterialPageRoute(
+        builder: (context) => const AuthScreen(),
+      ),
+    );
+
+    if (result != null) {
+      // 登录成功，更新用户状态
+      setState(() {
+        _isLoggedIn = true;
+        _currentUser = result;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('欢迎回来，${result.username}！'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
+  }
+
+  /// 显示用户菜单
+  void _showUserMenu() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 用户信息
+            ListTile(
+              leading: CircleAvatar(
+                backgroundColor: AppColors.primary,
+                child: Text(
+                  _currentUser?.username?.substring(0, 1).toUpperCase() ?? 'U',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+              title: Text(_currentUser?.username ?? '用户'),
+              subtitle: Text(_currentUser?.email ?? ''),
+            ),
+            const Divider(),
+            // 邮箱验证状态
+            if (_currentUser != null && !_currentUser!.isEmailVerified)
+              ListTile(
+                leading: const Icon(Icons.warning, color: AppColors.warning),
+                title: const Text('邮箱未验证'),
+                subtitle: const Text('请查收邮件完成验证'),
+                trailing: TextButton(
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    final result = await AuthService.resendVerification(_currentUser!.email);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(result['message']),
+                        backgroundColor: result['success'] ? AppColors.success : AppColors.error,
+                      ),
+                    );
+                  },
+                  child: const Text('重新发送'),
+                ),
+              ),
+            // 退出登录
+            ListTile(
+              leading: const Icon(Icons.logout, color: AppColors.error),
+              title: const Text('退出登录'),
+              onTap: () async {
+                Navigator.of(context).pop();
+                await AuthService.logout();
+                setState(() {
+                  _isLoggedIn = false;
+                  _currentUser = null;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('已退出登录'),
+                    backgroundColor: AppColors.info,
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _startRunning() async {
+    // 检查登录状态
+    if (!_isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('请先登录后再开始跑步'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      await _showAuthScreen();
+      return;
+    }
+
+    // 检查邮箱验证状态
+    if (_currentUser != null && !_currentUser!.isEmailVerified) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('请先验证邮箱后再开始跑步'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
+
     if (!_hasPermissions) {
       await _showPermissionDialog();
       return;
@@ -107,7 +271,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isCheckingPermissions) {
+    if (_isCheckingPermissions || _isCheckingAuth) {
       return const Scaffold(
         body: Center(
           child: Column(
@@ -118,7 +282,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SizedBox(height: 16),
               Text(
-                '正在检查权限状态...',
+                '正在初始化应用...',
                 style: TextStyle(
                   fontSize: 16,
                   color: AppColors.textSecondary,
@@ -137,6 +301,31 @@ class _HomeScreenState extends State<HomeScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          // 用户头像或登录按钮
+          if (_isLoggedIn && _currentUser != null)
+            GestureDetector(
+              onTap: _showUserMenu,
+              child: Container(
+                margin: const EdgeInsets.only(right: 16),
+                child: CircleAvatar(
+                  backgroundColor: Colors.white,
+                  child: Text(
+                    _currentUser!.username.substring(0, 1).toUpperCase(),
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            )
+          else
+            TextButton.icon(
+              onPressed: _showAuthScreen,
+              icon: const Icon(Icons.login, color: Colors.white),
+              label: const Text('登录', style: TextStyle(color: Colors.white)),
+            ),
+
           if (!_hasPermissions)
             IconButton(
               onPressed: _showPermissionDialog,
@@ -163,6 +352,37 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // 用户欢迎信息
+              if (_isLoggedIn && _currentUser != null) ...[
+                Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _currentUser!.isEmailVerified ? Icons.verified_user : Icons.warning,
+                        color: _currentUser!.isEmailVerified ? Colors.white : AppColors.warning,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '欢迎，${_currentUser!.username}！',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
               // 主图标
               Container(
                 padding: const EdgeInsets.all(24),
@@ -181,7 +401,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // 主标题
               Text(
-                _hasPermissions ? '准备开始你的跑步之旅！' : '需要权限才能开始跑步',
+                _getMainTitle(),
                 style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -194,7 +414,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // 副标题
               Text(
-                _hasPermissions ? '点击下方按钮开始你的健康运动' : '请授权位置权限以使用跑步功能',
+                _getSubTitle(),
                 style: const TextStyle(
                   fontSize: 16,
                   color: Colors.white70,
@@ -202,11 +422,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 textAlign: TextAlign.center,
               ),
 
-              // 位置状态显示
-              if (_hasPermissions) ...[
-                const SizedBox(height: 24),
+              const SizedBox(height: 40),
+
+              // 位置状态指示器
+              if (_hasPermissions && _isLoggedIn) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20),
@@ -214,7 +435,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (_isGettingLocation) ...[
+                      if (_isGettingLocation)
                         const SizedBox(
                           width: 16,
                           height: 16,
@@ -222,25 +443,18 @@ class _HomeScreenState extends State<HomeScreen> {
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                      ] else if (_currentPosition != null) ...[
-                        const Icon(
-                          Icons.location_on,
-                          color: Colors.white,
+                        )
+                      else
+                        Icon(
+                          _currentPosition != null ? Icons.location_on : Icons.location_off,
+                          color: _currentPosition != null ? Colors.white : AppColors.warning,
                           size: 16,
                         ),
-                        const SizedBox(width: 8),
-                      ] else ...[
-                        const Icon(
-                          Icons.location_off,
-                          color: Colors.white,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 8),
-                      ],
+                      const SizedBox(width: 8),
                       Text(
-                        _locationStatus.isEmpty ? '准备获取位置' : _locationStatus,
+                        _locationStatus.isEmpty
+                            ? (_currentPosition != null ? '位置已就绪' : '位置获取中...')
+                            : _locationStatus,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 14,
@@ -249,66 +463,66 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 32),
               ],
 
-              const SizedBox(height: 48),
-
-              // 主要操作按钮
-              if (_hasPermissions) ...[
-                ElevatedButton(
-                  onPressed: _startRunning,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 48,
-                      vertical: 16,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    elevation: 8,
+              // 主按钮
+              ElevatedButton(
+                onPressed: _startRunning,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
                   ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.play_arrow, size: 28),
-                      SizedBox(width: 12),
-                      Text(
-                        '开始跑步',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
+                  elevation: 8,
                 ),
-              ] else ...[
-                ElevatedButton(
-                  onPressed: _showPermissionDialog,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 48,
-                      vertical: 16,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _getButtonIcon(),
+                      size: 24,
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                    const SizedBox(width: 12),
+                    Text(
+                      _getButtonText(),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    elevation: 8,
+                  ],
+                ),
+              ),
+
+              // 底部提示
+              if (!_isLoggedIn || (_currentUser != null && !_currentUser!.isEmailVerified)) ...[
+                const SizedBox(height: 24),
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withOpacity(0.3)),
                   ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
+                  child: Row(
                     children: [
-                      Icon(Icons.security, size: 28),
-                      SizedBox(width: 12),
-                      Text(
-                        '申请权限',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      Icon(
+                        _isLoggedIn ? Icons.email : Icons.info,
+                        color: Colors.white70,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _isLoggedIn ? '请先验证邮箱后再开始跑步' : '请先登录账户，记录你的跑步数据',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ],
@@ -320,5 +534,33 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  String _getMainTitle() {
+    if (!_isLoggedIn) return '欢迎使用跑步追踪器！';
+    if (_currentUser != null && !_currentUser!.isEmailVerified) return '请先验证邮箱';
+    if (!_hasPermissions) return '需要权限才能开始跑步';
+    return '准备开始你的跑步之旅！';
+  }
+
+  String _getSubTitle() {
+    if (!_isLoggedIn) return '登录账户，开始记录你的精彩跑步历程';
+    if (_currentUser != null && !_currentUser!.isEmailVerified) return '查收邮件并点击验证链接';
+    if (!_hasPermissions) return '请授权位置权限以使用跑步功能';
+    return '点击下方按钮开始你的健康运动';
+  }
+
+  IconData _getButtonIcon() {
+    if (!_isLoggedIn) return Icons.login;
+    if (_currentUser != null && !_currentUser!.isEmailVerified) return Icons.email;
+    if (!_hasPermissions) return Icons.security;
+    return Icons.play_arrow;
+  }
+
+  String _getButtonText() {
+    if (!_isLoggedIn) return '立即登录';
+    if (_currentUser != null && !_currentUser!.isEmailVerified) return '验证邮箱';
+    if (!_hasPermissions) return '授权权限';
+    return '开始跑步';
   }
 }

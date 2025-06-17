@@ -38,6 +38,9 @@ class AppColors {
   /// 卡片背景色
   static const Color surface = Color(0xFFFFFFFF);
 
+  /// 卡片背景色（浅灰）
+  static const Color cardBackground = Color(0xFFF5F5F5);
+
   /// 深色背景
   static const Color surfaceDark = Color(0xFF121212);
 
@@ -45,8 +48,14 @@ class AppColors {
   /// 主要文字
   static const Color textPrimary = Color(0xFF212121);
 
+  /// 深色文字（主标题等）
+  static const Color textDark = Color(0xFF212121);
+
   /// 次要文字
   static const Color textSecondary = Color(0xFF757575);
+
+  /// 中等文字（副标题等）
+  static const Color textMedium = Color(0xFF757575);
 
   /// 禁用状态文字
   static const Color textDisabled = Color(0xFFBDBDBD);
