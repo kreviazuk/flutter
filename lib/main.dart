@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'presentation/theme/app_theme.dart';
 import 'presentation/screens/home_screen.dart';
+import 'core/constants/app_config.dart';
 
 void main() {
+  // 打印应用配置信息
+  AppConfig.printConfig();
+
   runApp(const RunningTrackerApp());
 }
 

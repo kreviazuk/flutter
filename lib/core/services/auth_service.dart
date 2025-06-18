@@ -4,13 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/models/user.dart';
+import '../constants/app_config.dart';
 
+/// 认证服务
 class AuthService {
-  // 根据平台自动选择baseURL
-  static String get baseUrl {
-    return 'http://localhost:3001/api/auth';
-  }
-
   // 全局请求状态保护
   static bool _isLoginInProgress = false;
   static bool _isRegisterInProgress = false;
@@ -18,16 +15,11 @@ class AuthService {
   // 创建配置了代理的HTTP客户端（仅在调试模式下）
   static http.Client _createHttpClient() {
     // 只有在调试模式下才配置代理
-    if (kDebugMode && !kIsWeb) {
-      // 获取宿主机的真实IP地址，而不是使用 10.0.2.2
-      // 您需要将此IP替换为您电脑的实际局域网IP地址
-      const proxyHost = '192.168.8.119'; // 您电脑的实际IP
-      const proxyPort = 9090; // Proxyman默认端口
-
-      print('🔧 配置代理: $proxyHost:$proxyPort');
+    if (AppConfig.isProxyEnabled) {
+      print('🔧 配置代理: ${AppConfig.proxyHost}:${AppConfig.proxyPort}');
 
       // 设置全局代理
-      HttpOverrides.global = _ProxyHttpOverride(proxyHost, proxyPort);
+      HttpOverrides.global = _ProxyHttpOverride(AppConfig.proxyHost, AppConfig.proxyPort);
     }
     return http.Client();
   }
@@ -51,11 +43,11 @@ class AuthService {
       };
 
       print('--- 注册请求 ---');
-      print('URL: $baseUrl/register');
+      print('URL: ${AppConfig.apiBaseUrl}/register');
       print('Body: ${jsonEncode(requestBody)}');
 
       final response = await client.post(
-        Uri.parse('$baseUrl/register'),
+        Uri.parse('${AppConfig.apiBaseUrl}/register'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -122,11 +114,11 @@ class AuthService {
       };
 
       print('--- 登录请求 [ID: $requestId] ---');
-      print('URL: $baseUrl/login');
+      print('URL: ${AppConfig.apiBaseUrl}/login');
       print('Body: ${jsonEncode(requestBody)}');
 
       final response = await client.post(
-        Uri.parse('$baseUrl/login'),
+        Uri.parse('${AppConfig.apiBaseUrl}/login'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -177,7 +169,7 @@ class AuthService {
 
     try {
       final response = await client.post(
-        Uri.parse('$baseUrl/verify-email'),
+        Uri.parse('${AppConfig.apiBaseUrl}/verify-email'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -208,7 +200,7 @@ class AuthService {
 
     try {
       final response = await client.post(
-        Uri.parse('$baseUrl/resend-verification'),
+        Uri.parse('${AppConfig.apiBaseUrl}/resend-verification'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -247,7 +239,7 @@ class AuthService {
       }
 
       final response = await client.get(
-        Uri.parse('$baseUrl/me'),
+        Uri.parse('${AppConfig.apiBaseUrl}/me'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -298,7 +290,7 @@ class AuthService {
       if (avatar != null) body['avatar'] = avatar;
 
       final response = await client.put(
-        Uri.parse('$baseUrl/profile'),
+        Uri.parse('${AppConfig.apiBaseUrl}/profile'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
