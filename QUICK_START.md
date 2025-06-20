@@ -26,14 +26,25 @@ flutter run -d chrome --web-port 8080
 
 #### 后端部署（选择一种）
 
-**方案 A: Railway (推荐)**
+**方案 A: VPS 服务器 (推荐)**
+
+1. 购买 VPS 服务器（阿里云/腾讯云，约 ¥24/月）
+2. 注册域名并解析到服务器 IP
+3. 一键部署：
+   ```bash
+   ./scripts/deploy-vps.sh your_server_ip yourdomain.com
+   ```
+4. 获得域名：`https://yourdomain.com`
+
+**方案 B: Railway**
 
 1. 注册 [railway.app](https://railway.app)
 2. 连接 GitHub 仓库
 3. 部署后端服务
 4. 获得域名：`https://your-app.up.railway.app`
+5. ⚠️ 注意：部分地区可能无法访问
 
-**方案 B: Render**
+**方案 C: Render**
 
 1. 注册 [render.com](https://render.com)
 2. 创建 Web Service
@@ -78,6 +89,7 @@ export TEST_API_URL=https://your-api.railway.app/api/auth
 | 环境         | ENV 值 | API 地址                                            |
 | ------------ | ------ | --------------------------------------------------- |
 | **开发环境** | `dev`  | `localhost:3000` (Web)<br>`10.0.2.2:3000` (Android) |
+| **测试环境** | `test` | `http://104.225.147.57/api/auth` (VPS)              |
 | **生产环境** | `prod` | `https://flutter-production-80de.up.railway.app`    |
 
 ```bash
@@ -85,6 +97,13 @@ export TEST_API_URL=https://your-api.railway.app/api/auth
 flutter run -d chrome --web-port 8080    # Web端
 flutter run -d android                   # Android端
 flutter run -d ios                       # iOS端
+
+# 🧪 测试环境 (VPS API)
+flutter run -d chrome --web-port 8080 --dart-define=ENV=test    # Web端
+flutter run -d android --dart-define=ENV=test                   # Android端
+# 或使用快捷脚本
+./scripts/run-web-vps-test.sh                                   # Web测试
+./scripts/run-android-vps-test.sh                               # Android测试
 
 # 🚀 生产环境 (Railway API)
 flutter run -d chrome --web-port 8080 --dart-define=ENV=prod    # Web端
@@ -160,16 +179,24 @@ git push origin main  # 触发自动部署
 
 ## 🎯 推荐部署组合
 
+### 🌟 VPS 自建方案 (推荐)
+
+- **服务器**: 阿里云 ECS 1 核 2G (¥24/月)
+- **域名**: .com 域名 (¥60/年)
+- **SSL**: Let's Encrypt (免费)
+- **总成本**: ¥29/月，¥348/年
+- **优势**: 完全自主可控，稳定可靠
+
 ### 🆓 免费方案 (适合学习/测试)
 
-- **后端**: Railway.app (免费额度)
+- **后端**: Railway.app (免费额度，网络问题)
 - **前端**: Vercel (免费)
 - **数据库**: SQLite (内置)
 - **域名**: 使用平台提供的子域名
 
-### 💰 付费方案 (适合生产)
+### 💰 海外付费方案 (适合国际用户)
 
-- **后端**: DigitalOcean VPS ($5/月)
+- **后端**: DigitalOcean VPS ($4/月)
 - **前端**: Cloudflare Pages (免费) + CDN
 - **数据库**: PostgreSQL (托管服务)
 - **域名**: 自购域名 ($10/年)

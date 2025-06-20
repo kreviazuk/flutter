@@ -16,8 +16,8 @@ class AppConfig {
   /// 生产环境配置 - Railway 部署地址
   static const String _prodApiUrl = 'https://flutter-production-80de.up.railway.app/api/auth';
 
-  /// 测试环境配置 - Railway 部署地址
-  static const String _testApiUrl = 'https://flutter-production-80de.up.railway.app/api/auth';
+  /// 测试环境配置 - VPS 服务器地址
+  static const String _testApiUrl = 'http://104.225.147.57/api/auth';
 
   /// 代理配置
   static const String _proxyHost = '192.168.8.119';
