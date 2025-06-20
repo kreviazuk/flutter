@@ -9,14 +9,14 @@ class AppConfig {
   /// 从环境变量获取当前环境，默认为开发环境
   static const String _environment = String.fromEnvironment('ENV', defaultValue: 'development');
 
-  /// 开发环境配置
+  /// 开发环境配置 - 本地开发
   static const String _devApiUrl = 'http://localhost:3000/api/auth';
-  static const String _devApiUrlAndroid = 'http://localhost:3000/api/auth';
+  static const String _devApiUrlAndroid = 'http://10.0.2.2:3000/api/auth';
 
-  /// 生产环境配置 - 使用 Railway 部署的地址
+  /// 生产环境配置 - Railway 部署地址
   static const String _prodApiUrl = 'https://flutter-production-80de.up.railway.app/api/auth';
 
-  /// 测试环境配置
+  /// 测试环境配置 - Railway 部署地址
   static const String _testApiUrl = 'https://flutter-production-80de.up.railway.app/api/auth';
 
   /// 代理配置
@@ -34,15 +34,18 @@ class AppConfig {
     // 根据环境和平台自动选择
     switch (_environment) {
       case 'production':
+      case 'prod':
         return _prodApiUrl;
       case 'test':
+      case 'testing':
         return _testApiUrl;
       case 'development':
+      case 'dev':
       default:
         if (kIsWeb) {
           return _devApiUrl; // Web端使用localhost
         } else {
-          return _devApiUrlAndroid; // Android/iOS端使用localhost
+          return _devApiUrlAndroid; // Android/iOS端使用10.0.2.2
         }
     }
   }
@@ -69,13 +72,13 @@ class AppConfig {
   static String get environmentName => _environment;
 
   /// 是否为开发环境
-  static bool get isDevelopment => _environment == 'development';
+  static bool get isDevelopment => _environment == 'development' || _environment == 'dev';
 
   /// 是否为生产环境
-  static bool get isProduction => _environment == 'production';
+  static bool get isProduction => _environment == 'production' || _environment == 'prod';
 
   /// 是否为测试环境
-  static bool get isTest => _environment == 'test';
+  static bool get isTest => _environment == 'test' || _environment == 'testing';
 
   /// 打印当前配置信息
   static void printConfig() {
@@ -89,6 +92,9 @@ class AppConfig {
       }
       print('Platform: ${kIsWeb ? 'Web' : 'Mobile'}');
       print('Debug Mode: $kDebugMode');
+      print(
+          '🌍 Using ${isProduction ? 'PRODUCTION' : isDevelopment ? 'DEVELOPMENT' : 'TEST'} Environment');
+      print('🚂 Railway API: ${apiBaseUrl.contains('railway') ? 'YES' : 'NO'}');
       print('=====================================================');
     }
   }
@@ -106,6 +112,7 @@ class AppConfig {
       'isDevelopment': isDevelopment,
       'isProduction': isProduction,
       'isTest': isTest,
+      'usingRailwayAPI': apiBaseUrl.contains('railway'),
     };
   }
 }

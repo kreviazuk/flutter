@@ -71,22 +71,33 @@ export TEST_API_URL=https://your-api.railway.app/api/auth
 
 ## 🔧 常用命令
 
+### 🌍 环境配置
+
+通过 `ENV` 参数控制环境（类似 Vite 项目）：
+
+| 环境         | ENV 值 | API 地址                                            |
+| ------------ | ------ | --------------------------------------------------- |
+| **开发环境** | `dev`  | `localhost:3000` (Web)<br>`10.0.2.2:3000` (Android) |
+| **生产环境** | `prod` | `https://flutter-production-80de.up.railway.app`    |
+
 ```bash
-# 开发环境
+# 🏠 开发环境 (默认 - 本地 API)
 flutter run -d chrome --web-port 8080    # Web端
 flutter run -d android                   # Android端
 flutter run -d ios                       # iOS端
 
-# 打包
-flutter build apk --release              # Android APK
-flutter build appbundle --release        # Android Bundle
-flutter build ios --release              # iOS
-flutter build web --release              # Web
+# 🚀 生产环境 (Railway API)
+flutter run -d chrome --web-port 8080 --dart-define=ENV=prod    # Web端
+flutter run --dart-define=ENV=prod                              # Android端
 
-# 环境变量构建
-flutter build apk --dart-define=API_BASE_URL=https://your-api.com/api/auth
+# 📦 打包
+flutter build apk --release                                     # 开发环境 APK
+flutter build apk --release --dart-define=ENV=prod              # 生产环境 APK
+flutter build appbundle --release --dart-define=ENV=prod        # Android Bundle
+flutter build ios --release --dart-define=ENV=prod             # iOS
+flutter build web --release --dart-define=ENV=prod             # Web
 
-# 后端
+# 🔧 后端
 cd backend && pnpm dev                    # 开发模式
 cd backend && pnpm start                 # 生产模式
 cd backend && npx prisma studio          # 数据库管理
