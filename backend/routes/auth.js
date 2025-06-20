@@ -191,7 +191,9 @@ router.post('/login', loginLimiter, async (req, res, next) => {
           email: user.email,
           username: user.username,
           avatar: user.avatar,
-          isEmailVerified: user.isEmailVerified
+          isEmailVerified: user.isEmailVerified,
+          createdAt: user.createdAt.toISOString(),
+          updatedAt: user.updatedAt.toISOString()
         }
       }
     });

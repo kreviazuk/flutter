@@ -129,19 +129,85 @@ class AuthService {
       print('Status Code: ${response.statusCode}');
       print('Response Body: ${response.body}');
 
-      final data = jsonDecode(response.body);
+      // 添加响应体检查
+      if (response.body.isEmpty) {
+        print('❌ 响应体为空 [ID: $requestId]');
+        return {
+          'success': false,
+          'message': '服务器响应为空',
+        };
+      }
+
+      Map<String, dynamic> data;
+      try {
+        data = jsonDecode(response.body);
+        print('✅ JSON解析成功 [ID: $requestId]');
+        print('解析后的数据: $data');
+      } catch (e) {
+        print('❌ JSON解析失败 [ID: $requestId]: $e');
+        return {
+          'success': false,
+          'message': 'JSON解析失败: $e',
+        };
+      }
 
       if (response.statusCode == 200) {
-        // 保存token和用户信息
-        await _saveAuthData(data['data']['token'], data['data']['user']);
+        try {
+          // 详细检查响应数据结构
+          print('🔍 检查响应数据结构 [ID: $requestId]');
 
-        print('✅ 登录成功 [ID: $requestId]');
-        return {
-          'success': true,
-          'message': data['message'],
-          'token': data['data']['token'],
-          'user': User.fromJson(data['data']['user']),
-        };
+          if (data['data'] == null) {
+            print('❌ data字段为null [ID: $requestId]');
+            return {
+              'success': false,
+              'message': '响应数据格式错误：缺少data字段',
+            };
+          }
+
+          final responseData = data['data'] as Map<String, dynamic>;
+          print('✅ data字段存在: $responseData');
+
+          if (responseData['token'] == null) {
+            print('❌ token字段为null [ID: $requestId]');
+            return {
+              'success': false,
+              'message': '响应数据格式错误：缺少token字段',
+            };
+          }
+
+          if (responseData['user'] == null) {
+            print('❌ user字段为null [ID: $requestId]');
+            return {
+              'success': false,
+              'message': '响应数据格式错误：缺少user字段',
+            };
+          }
+
+          final token = responseData['token'] as String;
+          final userData = responseData['user'] as Map<String, dynamic>;
+
+          print('✅ Token: ${token.substring(0, 20)}...');
+          print('✅ User Data: $userData');
+
+          // 保存token和用户信息
+          await _saveAuthData(token, userData);
+
+          print('✅ 登录成功 [ID: $requestId]');
+          return {
+            'success': true,
+            'message': data['message'] ?? '登录成功',
+            'token': token,
+            'user': User.fromJson(userData),
+          };
+        } catch (e, stackTrace) {
+          print('❌ 登录成功数据处理失败 [ID: $requestId]');
+          print('错误: $e');
+          print('堆栈: $stackTrace');
+          return {
+            'success': false,
+            'message': '数据处理失败: $e',
+          };
+        }
       } else {
         print('❌ 登录失败 [ID: $requestId]');
         return {

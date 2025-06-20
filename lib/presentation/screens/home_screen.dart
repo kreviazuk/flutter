@@ -183,26 +183,6 @@ class _HomeScreenState extends State<HomeScreen> {
               subtitle: Text(_currentUser?.email ?? ''),
             ),
             const Divider(),
-            // 邮箱验证状态
-            if (_currentUser != null && !_currentUser!.isEmailVerified)
-              ListTile(
-                leading: const Icon(Icons.warning, color: AppColors.warning),
-                title: const Text('邮箱未验证'),
-                subtitle: const Text('请查收邮件完成验证'),
-                trailing: TextButton(
-                  onPressed: () async {
-                    Navigator.of(context).pop();
-                    final result = await AuthService.resendVerification(_currentUser!.email);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(result['message']),
-                        backgroundColor: result['success'] ? AppColors.success : AppColors.error,
-                      ),
-                    );
-                  },
-                  child: const Text('重新发送'),
-                ),
-              ),
             // 退出登录
             ListTile(
               leading: const Icon(Icons.logout, color: AppColors.error),
@@ -238,17 +218,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
       await _showAuthScreen();
-      return;
-    }
-
-    // 检查邮箱验证状态
-    if (_currentUser != null && !_currentUser!.isEmailVerified) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('请先验证邮箱后再开始跑步'),
-          backgroundColor: AppColors.warning,
-        ),
-      );
       return;
     }
 
@@ -364,9 +333,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        _currentUser!.isEmailVerified ? Icons.verified_user : Icons.warning,
-                        color: _currentUser!.isEmailVerified ? Colors.white : AppColors.warning,
+                      const Icon(
+                        Icons.verified_user,
+                        color: Colors.white,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
@@ -498,7 +467,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
 
               // 底部提示
-              if (!_isLoggedIn || (_currentUser != null && !_currentUser!.isEmailVerified)) ...[
+              if (!_isLoggedIn) ...[
                 const SizedBox(height: 24),
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -510,16 +479,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: Row(
                     children: [
-                      Icon(
-                        _isLoggedIn ? Icons.email : Icons.info,
+                      const Icon(
+                        Icons.info,
                         color: Colors.white70,
                         size: 20,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Text(
-                          _isLoggedIn ? '请先验证邮箱后再开始跑步' : '请先登录账户，记录你的跑步数据',
-                          style: const TextStyle(
+                        child: const Text(
+                          '请先登录账户，记录你的跑步数据',
+                          style: TextStyle(
                             color: Colors.white70,
                             fontSize: 14,
                           ),
@@ -538,28 +507,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _getMainTitle() {
     if (!_isLoggedIn) return '欢迎使用跑步追踪器！';
-    if (_currentUser != null && !_currentUser!.isEmailVerified) return '请先验证邮箱';
     if (!_hasPermissions) return '需要权限才能开始跑步';
     return '准备开始你的跑步之旅！';
   }
 
   String _getSubTitle() {
     if (!_isLoggedIn) return '登录账户，开始记录你的精彩跑步历程';
-    if (_currentUser != null && !_currentUser!.isEmailVerified) return '查收邮件并点击验证链接';
     if (!_hasPermissions) return '请授权位置权限以使用跑步功能';
     return '点击下方按钮开始你的健康运动';
   }
 
   IconData _getButtonIcon() {
     if (!_isLoggedIn) return Icons.login;
-    if (_currentUser != null && !_currentUser!.isEmailVerified) return Icons.email;
     if (!_hasPermissions) return Icons.security;
     return Icons.play_arrow;
   }
 
   String _getButtonText() {
     if (!_isLoggedIn) return '立即登录';
-    if (_currentUser != null && !_currentUser!.isEmailVerified) return '验证邮箱';
     if (!_hasPermissions) return '授权权限';
     return '开始跑步';
   }
