@@ -9,4 +9,20 @@ restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
 [variables]
-NODE_ENV = "production" 
+NODE_ENV = "production"
+
+# 明确指定这是 Node.js 项目
+[build.env]
+NIXPACKS_BUILD_CMD = "npm install"
+NIXPACKS_START_CMD = "npm start"
+
+# 忽略 Flutter 相关文件
+[build.ignore]
+patterns = [
+  "*.yaml",
+  "*.dart",
+  "android/",
+  "ios/",
+  "lib/",
+  "test/"
+] 
