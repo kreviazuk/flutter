@@ -1,166 +1,298 @@
-# 托育机构管理系统 - Flutter版本
+# 🏃‍♂️ Flutter 跑步追踪器
 
-基于Flutter框架开发的托育机构管理系统，支持机构人员登录、学员管理、人员管理等功能。
+一个基于 Flutter 开发的跑步追踪应用，支持实时位置记录、运动数据统计和个人资料管理。
 
-## 🚀 功能特性
+## 📱 支持平台
 
-- **用户认证**：手机号验证码登录
-- **学员管理**：婴幼儿信息管理
-- **人员管理**：员工信息管理  
-- **考勤管理**：签到签退管理
-- **食谱管理**：营养餐单管理
-- **健康管理**：体检晨检管理
-- **活动管理**：机构活动管理
+- ✅ **Android** (API Level 21+)
+- ✅ **iOS** (iOS 12.0+)
+- ✅ **Web** (Chrome, Safari, Firefox)
 
 ## 🛠️ 技术栈
 
-- **框架**：Flutter 3.5.4+
-- **状态管理**：Provider
-- **网络请求**：Dio
-- **本地存储**：SharedPreferences
-- **UI组件**：Material Design 3
+### 前端
 
-## 📱 后台接口
+- **Flutter** 3.0+ - 跨平台 UI 框架
+- **Dart** - 编程语言
+- **Google Maps** - 地图服务
+- **Geolocator** - 位置服务
+- **Image Picker** - 图片选择
 
-- **API地址**：https://gapitest.yban.co
-~~- **登录方式**：手机号 + 验证码~~
+### 后端
 
-## 🔧 开发环境配置
+- **Node.js** + **Express** - 服务器框架
+- **Prisma** + **SQLite** - 数据库 ORM
+- **JWT** - 身份验证
+- **Bcrypt** - 密码加密
 
-### 前置要求
+## 🚀 快速开始
 
-- Flutter SDK 3.5.4+
-- Dart SDK 3.0+
-- Android Studio / VS Code
-- iOS开发需要Xcode (macOS)
+### 环境准备
 
-### 安装步骤
+1. **安装 Flutter SDK**
 
-1. **克隆项目**
    ```bash
-   git clone https://github.com/kreviazuk/flutter.git
-   cd flutter
+   # 下载并安装 Flutter
+   # https://flutter.dev/docs/get-started/install
+   flutter doctor
    ```
 
 2. **安装依赖**
+
    ```bash
+   # 前端依赖
    flutter pub get
+
+   # 后端依赖
+   cd backend
+   pnpm install
    ```
 
-3. **运行项目**
+3. **配置数据库**
    ```bash
-   # Android
-   flutter run
-   
-   # iOS (需要macOS)
-   flutter run -d ios
-   
-   # Web
-   flutter run -d web
+   cd backend
+   npx prisma db push
    ```
 
-## 📲 使用说明
+### 开发环境运行
 
-### 登录测试
+1. **启动后端服务**
 
-1. 启动应用后会显示登录页面
-2. 输入任意11位手机号码
-3. 点击"获取验证码"按钮
-4. 输入验证码 `1234` (测试用)
-5. 点击"登录"按钮
+   ```bash
+   cd backend
+   pnpm dev
+   ```
 
-### 主要功能
+2. **启动前端应用**
 
-- **首页**：显示系统功能模块
-- **学员管理**：管理婴幼儿基本信息
-- **人员管理**：管理机构员工信息
-- **其他功能**：正在开发中...
+   ```bash
+   # Web端 (Chrome)
+   flutter run -d chrome --web-port 8080
 
-## 🏗️ 项目结构
+   # Android端
+   flutter run -d android
 
-```
-lib/
-├── main.dart                 # 应用入口
-├── models/                   # 数据模型
-├── providers/                # 状态管理
-│   └── auth_provider.dart   # 认证状态管理
-├── screens/                  # 页面
-│   ├── home_screen.dart     # 主页
-│   └── login_screen.dart    # 登录页
-├── services/                 # 服务层
-├── utils/                    # 工具类
-└── widgets/                  # 公共组件
-```
+   # iOS端 (需要macOS)
+   flutter run -d ios
+   ```
 
-## 🔐 API集成
+## 📦 应用打包
 
-当前使用模拟数据进行测试，真实API集成需要：
+### Android 打包
 
-1. 实现 `ApiClient` 类用于网络请求
-2. 创建 `AuthService` 处理登录相关API
-3. 定义数据模型类对应后台接口
-4. 更新 `AuthProvider` 调用真实API
+#### 1. 调试版本 (APK)
 
-### 示例API调用
+```bash
+# 构建调试APK
+flutter build apk --debug
 
-```dart
-// 发送验证码
-POST https://gapitest.yban.co/api/subdev/GovService/login/sendcode
-{
-  "phone": "手机号",
-  "scope": "jiGou"
-}
+# 构建发布APK (未签名)
+flutter build apk --release
 
-// 用户登录
-POST https://gapitest.yban.co/api/subdev/GovService/login
-{
-  "phone": "手机号",
-  "code": "验证码",
-  "scope": "jiGou"
-}
+# APK文件位置
+# build/app/outputs/flutter-apk/app-release.apk
 ```
 
-## 🎨 UI设计
+#### 2. 生产版本 (AAB - 推荐)
 
-- **设计风格**：Material Design 3
-- **主题色**：蓝色 (#2196F3)
-- **布局**：响应式设计
-- **动画**：流畅的页面转场
+```bash
+# 构建App Bundle (推荐用于Google Play)
+flutter build appbundle --release
 
-## 🚧 开发计划
+# AAB文件位置
+# build/app/outputs/bundle/release/app-release.aab
+```
 
-- [x] 用户登录功能
-- [x] 主页UI设计
-- [ ] 学员管理模块
-- [ ] 人员管理模块
-- [ ] 考勤管理模块
-- [ ] 食谱管理模块
-- [ ] 健康管理模块
-- [ ] 活动管理模块
-- [ ] 数据同步功能
-- [ ] 离线缓存支持
+#### 3. 签名配置 (生产环境)
 
-## 📝 更新日志
+```bash
+# 1. 生成签名密钥
+keytool -genkey -v -keystore ~/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
 
-### v1.0.0 (2024-01-XX)
-- ✅ 项目初始化
-- ✅ 登录功能实现
-- ✅ 主页UI设计
-- ✅ 状态管理配置
-- ✅ 路由导航设置
+# 2. 配置 android/key.properties
+storePassword=<密码>
+keyPassword=<密钥密码>
+keyAlias=upload
+storeFile=<keystore文件路径>
 
-## 🤝 贡献指南
+# 3. 构建签名版本
+flutter build appbundle --release
+```
 
-1. Fork 项目
-2. 创建功能分支 (`git checkout -b feature/新功能`)
-3. 提交代码 (`git commit -am '添加新功能'`)
-4. 推送分支 (`git push origin feature/新功能`)
-5. 创建 Pull Request
+### iOS 打包
+
+#### 1. 开发版本
+
+```bash
+# 构建iOS应用 (需要Xcode)
+flutter build ios --debug
+
+# 通过Xcode运行
+open ios/Runner.xcworkspace
+```
+
+#### 2. 生产版本
+
+```bash
+# 构建发布版本
+flutter build ios --release
+
+# App Store发布步骤：
+# 1. 在Xcode中打开项目
+# 2. 选择 Product > Archive
+# 3. 使用 Organizer 上传到 App Store Connect
+```
+
+#### 3. Ad-hoc 分发
+
+```bash
+# 构建Ad-hoc版本用于内测
+flutter build ios --release --flavor adhoc
+```
+
+### Web 打包
+
+```bash
+# 构建Web版本
+flutter build web --release
+
+# 部署到静态服务器
+# 构建文件位置: build/web/
+```
+
+## 🌍 部署指南
+
+### 测试环境部署
+
+#### 后端部署选项
+
+1. **免费云服务 (推荐新手)**
+
+   - [Railway](https://railway.app) - 简单快速
+   - [Render](https://render.com) - 免费层
+   - [Vercel](https://vercel.com) - Node.js 支持
+   - [Heroku](https://heroku.com) - 老牌服务
+
+2. **VPS 服务器**
+   - [DigitalOcean](https://digitalocean.com) - $5/月
+   - [Vultr](https://vultr.com) - $2.50/月
+   - [Linode](https://linode.com) - $5/月
+
+#### 前端部署选项
+
+1. **静态站点托管**
+
+   - [Vercel](https://vercel.com) - 免费
+   - [Netlify](https://netlify.com) - 免费
+   - [GitHub Pages](https://pages.github.com) - 免费
+
+2. **CDN 服务**
+   - [Cloudflare](https://cloudflare.com) - 免费 CDN
+
+### 环境配置
+
+#### 开发环境
+
+```bash
+ENV=development
+API_BASE_URL=http://localhost:3000/api/auth
+```
+
+#### 测试环境
+
+```bash
+ENV=test
+API_BASE_URL=https://your-test-api.railway.app/api/auth
+```
+
+#### 生产环境
+
+```bash
+ENV=production
+API_BASE_URL=https://your-prod-api.com/api/auth
+```
+
+## 🔧 配置文件
+
+### Flutter 环境变量
+
+```bash
+# 使用自定义API地址运行
+flutter run --dart-define=API_BASE_URL=https://your-api.com/api/auth --dart-define=ENV=production
+```
+
+### 后端环境变量 (.env)
+
+```env
+DATABASE_URL="file:./dev.db"
+JWT_SECRET="your-super-secret-jwt-key"
+JWT_EXPIRES_IN="7d"
+PORT=3000
+NODE_ENV="development"
+FRONTEND_URL="http://localhost:8080"
+```
+
+## 📝 发布脚本
+
+### 创建快速打包脚本
+
+```bash
+# scripts/build-android.sh
+#!/bin/bash
+echo "🔨 构建 Android 应用..."
+flutter clean
+flutter pub get
+flutter build appbundle --release
+echo "✅ Android 构建完成!"
+echo "📦 文件位置: build/app/outputs/bundle/release/app-release.aab"
+
+# scripts/build-ios.sh
+#!/bin/bash
+echo "🔨 构建 iOS 应用..."
+flutter clean
+flutter pub get
+flutter build ios --release
+echo "✅ iOS 构建完成!"
+echo "📱 请使用 Xcode 打开 ios/Runner.xcworkspace 进行发布"
+```
+
+## 🚀 CI/CD 自动化
+
+### GitHub Actions 示例
+
+```yaml
+# .github/workflows/build.yml
+name: Build and Deploy
+on:
+  push:
+    branches: [main]
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
+      - run: flutter pub get
+      - run: flutter build appbundle --release
+```
+
+## 📱 应用功能
+
+- 🏃‍♂️ **实时跑步追踪** - GPS 位置记录
+- 📊 **运动数据统计** - 距离、时间、配速
+- 👤 **个人资料管理** - 头像、用户名、个人简介
+- 🔐 **用户认证系统** - 注册、登录、JWT 认证
+- 🗺️ **地图显示** - Google Maps 集成
+- 📸 **头像上传** - 相册选择、拍照功能
 
 ## 📄 许可证
 
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+MIT License
 
-## 📞 联系方式
+## 🤝 贡献
 
-如有问题或建议，请创建 Issue 或联系开发团队。
+欢迎提交 Issue 和 Pull Request！
+
+---
+
+_快乐跑步，记录每一步！_ 🎉
