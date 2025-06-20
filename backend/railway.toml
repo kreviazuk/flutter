@@ -25,4 +25,8 @@ patterns = [
   "ios/",
   "lib/",
   "test/"
-] 
+]
+
+# Railway 网络配置
+[deploy.env]
+PORT = "$PORT" 
