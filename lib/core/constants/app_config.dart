@@ -13,11 +13,11 @@ class AppConfig {
   static const String _devApiUrl = 'http://localhost:3000/api/auth';
   static const String _devApiUrlAndroid = 'http://localhost:3000/api/auth';
 
-  /// 生产环境配置
-  static const String _prodApiUrl = 'https://your-production-api.com/api/auth';
+  /// 生产环境配置 - 使用 Railway 部署的地址
+  static const String _prodApiUrl = 'https://flutter-production-80de.up.railway.app/api/auth';
 
   /// 测试环境配置
-  static const String _testApiUrl = 'https://your-test-api.com/api/auth';
+  static const String _testApiUrl = 'https://flutter-production-80de.up.railway.app/api/auth';
 
   /// 代理配置
   static const String _proxyHost = '192.168.8.119';
