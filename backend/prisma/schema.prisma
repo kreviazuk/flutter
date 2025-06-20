@@ -21,7 +21,7 @@ model User {
   username        String?
   avatar          String?
   bio             String? // 个人简介
-  isEmailVerified Boolean  @default(false)
+  isEmailVerified Boolean  @default(true) // 注册时已验证，默认为true
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -44,4 +44,17 @@ model EmailVerification {
   userId String?
 
   @@map("email_verifications")
+}
+
+// 邮箱验证码表（注册前验证）
+model EmailVerificationCode {
+  id        String   @id @default(cuid())
+  email     String
+  code      String // 6位数字验证码
+  expiresAt DateTime // 5分钟后过期
+  isUsed    Boolean  @default(false)
+  attempts  Int      @default(0) // 尝试次数
+  createdAt DateTime @default(now())
+
+  @@map("email_verification_codes")
 }

@@ -27,9 +27,42 @@ class AuthService {
   static const String tokenKey = 'auth_token';
   static const String userKey = 'user_data';
 
-  // 注册
+  // 发送注册验证码
+  static Future<Map<String, dynamic>> sendVerificationCode(String email) async {
+    final client = _createHttpClient();
+
+    try {
+      final response = await client.post(
+        Uri.parse('${AppConfig.apiBaseUrl}/send-verification-code'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'email': email,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      return {
+        'success': response.statusCode == 200,
+        'message': data['message'],
+        'testCode': data['testCode'], // 测试环境的验证码
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': '网络错误: $e',
+      };
+    } finally {
+      client.close();
+    }
+  }
+
+  // 注册（需要验证码）
   static Future<Map<String, dynamic>> register({
     required String email,
+    required String code,
     required String password,
     String? username,
   }) async {
@@ -38,13 +71,10 @@ class AuthService {
     try {
       final requestBody = {
         'email': email,
+        'code': code,
         'password': password,
-        if (username != null) 'username': username,
+        if (username != null && username.isNotEmpty) 'username': username,
       };
-
-      print('--- 注册请求 ---');
-      print('URL: ${AppConfig.apiBaseUrl}/register');
-      print('Body: ${jsonEncode(requestBody)}');
 
       final response = await client.post(
         Uri.parse('${AppConfig.apiBaseUrl}/register'),
@@ -54,17 +84,20 @@ class AuthService {
         body: jsonEncode(requestBody),
       );
 
-      print('--- 注册响应 ---');
-      print('Status Code: ${response.statusCode}');
-      print('Response Body: ${response.body}');
-
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 201) {
+        // 注册成功，保存token和用户信息
+        final token = data['data']['token'];
+        final userData = data['data']['user'];
+
+        await _saveAuthData(token, userData);
+
         return {
           'success': true,
           'message': data['message'],
-          'user': data['data']['user'],
+          'token': token,
+          'user': User.fromJson(userData),
         };
       } else {
         return {
@@ -73,11 +106,9 @@ class AuthService {
         };
       }
     } catch (e) {
-      print('--- 注册异常 ---');
-      print(e.toString());
       return {
         'success': false,
-        'message': '网络错误，请检查连接: ${e.toString()}',
+        'message': '网络错误: $e',
       };
     } finally {
       client.close();

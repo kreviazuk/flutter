@@ -151,7 +151,71 @@ const sendPasswordResetEmail = async (email, token) => {
   }
 };
 
+// 发送注册验证码邮件
+const sendRegistrationCode = async (email, code) => {
+  try {
+    const transporter = createTransporter();
+    
+    const mailOptions = {
+      from: {
+        name: '跑步追踪器',
+        address: process.env.EMAIL_FROM
+      },
+      to: email,
+      subject: '🏃‍♂️ 注册验证码 - 跑步追踪器',
+      html: `
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #2563eb; margin: 0;">🏃‍♂️ 跑步追踪器</h1>
+            <p style="color: #6b7280; margin: 10px 0;">记录你的每一步精彩！</p>
+          </div>
+          
+          <div style="background: #f9fafb; padding: 30px; border-radius: 10px; margin: 20px 0;">
+            <h2 style="color: #1f2937; margin-top: 0;">注册验证码</h2>
+            <p style="color: #4b5563; line-height: 1.6;">
+              您正在注册跑步追踪器账户，验证码如下：
+            </p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <div style="background: #2563eb; color: white; padding: 20px 30px; 
+                          border-radius: 10px; font-size: 32px; font-weight: bold;
+                          letter-spacing: 8px; display: inline-block; font-family: 'Courier New', monospace;">
+                ${code}
+              </div>
+            </div>
+            
+            <p style="color: #6b7280; font-size: 14px; text-align: center;">
+              请在注册页面输入此验证码完成注册
+            </p>
+          </div>
+          
+          <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; color: #6b7280; font-size: 14px;">
+            <p><strong>安全提示：</strong></p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li>验证码将在5分钟后失效</li>
+              <li>请勿将验证码告知他人</li>
+              <li>如果不是您本人操作，请忽略此邮件</li>
+            </ul>
+            
+            <div style="text-align: center; margin-top: 30px; color: #9ca3af;">
+              <p>© 2024 跑步追踪器 | 让运动更有趣</p>
+            </div>
+          </div>
+        </div>
+      `
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    console.log('✅ 验证码邮件发送成功:', result.messageId);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error('❌ 验证码邮件发送失败:', error);
+    throw new Error(`邮件发送失败: ${error.message}`);
+  }
+};
+
 module.exports = {
   sendVerificationEmail,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  sendRegistrationCode
 }; 
