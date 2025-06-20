@@ -10,8 +10,8 @@ class AppConfig {
   static const String _environment = String.fromEnvironment('ENV', defaultValue: 'development');
 
   /// 开发环境配置
-  static const String _devApiUrl = 'http://localhost:3001/api/auth';
-  static const String _devApiUrlAndroid = 'http://localhost:3001/api/auth';
+  static const String _devApiUrl = 'http://localhost:3000/api/auth';
+  static const String _devApiUrlAndroid = 'http://localhost:3000/api/auth';
 
   /// 生产环境配置
   static const String _prodApiUrl = 'https://your-production-api.com/api/auth';

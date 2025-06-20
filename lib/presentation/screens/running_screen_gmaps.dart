@@ -85,24 +85,18 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     // 设置高刷新率模式
     _enableHighRefreshRate();
 
-    // 使用默认位置开始，模拟用户在北京
-    _currentPosition = Position(
-      latitude: _defaultLocation.latitude,
-      longitude: _defaultLocation.longitude,
-      timestamp: DateTime.now(),
-      accuracy: 5.0,
-      altitude: 50.0,
-      altitudeAccuracy: 3.0,
-      heading: 0.0,
-      headingAccuracy: 1.0,
-      speed: 0.0,
-      speedAccuracy: 1.0,
-    );
-
-    setState(() {
-      _isLocationLoaded = true;
-      _statusMessage = 'GPS就绪，可以开始跑步了！ 🎮 高帧率3D模式';
-    });
+    // 优先使用传入的GPS位置，如果没有则使用默认位置
+    if (widget.initialPosition != null) {
+      // 使用真实的GPS位置
+      _currentPosition = widget.initialPosition;
+      setState(() {
+        _isLocationLoaded = true;
+        _statusMessage = 'GPS就绪，当前位置已锁定！ 🎮 高帧率3D模式';
+      });
+    } else {
+      // 如果没有GPS位置，尝试获取当前位置
+      _getCurrentLocation();
+    }
 
     // 等待UI构建完成后更新地图
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -110,6 +104,74 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
         _updateMapLocation();
       }
     });
+  }
+
+  /// 获取当前位置
+  Future<void> _getCurrentLocation() async {
+    try {
+      setState(() {
+        _statusMessage = '正在获取GPS位置...';
+      });
+
+      // 检查位置服务是否开启
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() {
+          _statusMessage = 'GPS服务未开启，使用默认位置';
+          _currentPosition = Position(
+            latitude: _defaultLocation.latitude,
+            longitude: _defaultLocation.longitude,
+            timestamp: DateTime.now(),
+            accuracy: 5.0,
+            altitude: 50.0,
+            altitudeAccuracy: 3.0,
+            heading: 0.0,
+            headingAccuracy: 1.0,
+            speed: 0.0,
+            speedAccuracy: 1.0,
+          );
+          _isLocationLoaded = true;
+        });
+        return;
+      }
+
+      // 获取当前位置
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 15),
+      );
+
+      setState(() {
+        _currentPosition = position;
+        _isLocationLoaded = true;
+        _statusMessage = 'GPS就绪，当前位置已锁定！ 🎮 高帧率3D模式';
+      });
+
+      // 等待UI构建完成后更新地图
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_mapController != null) {
+          _updateMapLocation();
+        }
+      });
+    } catch (e) {
+      print('获取位置失败: $e');
+      setState(() {
+        _statusMessage = '位置获取失败，使用默认位置';
+        _currentPosition = Position(
+          latitude: _defaultLocation.latitude,
+          longitude: _defaultLocation.longitude,
+          timestamp: DateTime.now(),
+          accuracy: 5.0,
+          altitude: 50.0,
+          altitudeAccuracy: 3.0,
+          heading: 0.0,
+          headingAccuracy: 1.0,
+          speed: 0.0,
+          speedAccuracy: 1.0,
+        );
+        _isLocationLoaded = true;
+      });
+    }
   }
 
   @override

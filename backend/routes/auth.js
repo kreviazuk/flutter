@@ -191,6 +191,7 @@ router.post('/login', loginLimiter, async (req, res, next) => {
           email: user.email,
           username: user.username,
           avatar: user.avatar,
+          bio: user.bio,
           isEmailVerified: user.isEmailVerified,
           createdAt: user.createdAt.toISOString(),
           updatedAt: user.updatedAt.toISOString()
@@ -335,11 +336,48 @@ router.get('/me', authenticateToken, async (req, res) => {
 // 6. 更新用户信息
 router.put('/profile', authenticateToken, async (req, res, next) => {
   try {
-    const { username, avatar } = req.body;
+    const { username, avatar, bio } = req.body;
     
+    // 验证输入
     const updateData = {};
-    if (username) updateData.username = username;
-    if (avatar) updateData.avatar = avatar;
+    
+    if (username !== undefined) {
+      if (username.trim().length < 2 || username.trim().length > 20) {
+        return res.status(400).json({
+          success: false,
+          message: '用户名长度必须在2-20个字符之间'
+        });
+      }
+      updateData.username = username.trim();
+    }
+    
+    if (avatar !== undefined) {
+      if (avatar && typeof avatar !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: '头像必须是有效的字符串'
+        });
+      }
+      updateData.avatar = avatar;
+    }
+    
+    if (bio !== undefined) {
+      if (bio && bio.length > 200) {
+        return res.status(400).json({
+          success: false,
+          message: '个人简介不能超过200个字符'
+        });
+      }
+      updateData.bio = bio || null;
+    }
+
+    // 如果没有更新内容
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: '没有提供任何更新内容'
+      });
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id: req.user.id },
@@ -349,13 +387,16 @@ router.put('/profile', authenticateToken, async (req, res, next) => {
         email: true,
         username: true,
         avatar: true,
-        isEmailVerified: true
+        bio: true,
+        isEmailVerified: true,
+        createdAt: true,
+        updatedAt: true
       }
     });
 
     res.json({
       success: true,
-      message: '用户信息更新成功',
+      message: '个人资料更新成功',
       data: {
         user: updatedUser
       }

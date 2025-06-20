@@ -3,6 +3,7 @@ class User {
   final String email;
   final String username;
   final String? avatar;
+  final String? bio;
   final bool isEmailVerified;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -12,6 +13,7 @@ class User {
     required this.email,
     required this.username,
     this.avatar,
+    this.bio,
     required this.isEmailVerified,
     required this.createdAt,
     required this.updatedAt,
@@ -49,6 +51,11 @@ class User {
       final avatar = json['avatar']; // 可以为null
       if (avatar != null && avatar is! String) {
         throw ArgumentError('User avatar必须是String类型或null，当前是: ${avatar.runtimeType}');
+      }
+
+      final bio = json['bio']; // 可以为null
+      if (bio != null && bio is! String) {
+        throw ArgumentError('User bio必须是String类型或null，当前是: ${bio.runtimeType}');
       }
 
       final isEmailVerified = json['isEmailVerified'] ?? false;
@@ -93,6 +100,7 @@ class User {
         email: email,
         username: username,
         avatar: avatar,
+        bio: bio,
         isEmailVerified: isEmailVerified,
         createdAt: createdAt,
         updatedAt: updatedAt,
@@ -112,6 +120,7 @@ class User {
       'email': email,
       'username': username,
       'avatar': avatar,
+      'bio': bio,
       'isEmailVerified': isEmailVerified,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
@@ -123,6 +132,7 @@ class User {
     String? email,
     String? username,
     String? avatar,
+    String? bio,
     bool? isEmailVerified,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -132,6 +142,7 @@ class User {
       email: email ?? this.email,
       username: username ?? this.username,
       avatar: avatar ?? this.avatar,
+      bio: bio ?? this.bio,
       isEmailVerified: isEmailVerified ?? this.isEmailVerified,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

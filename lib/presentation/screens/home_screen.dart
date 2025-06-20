@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'dart:convert';
+import 'dart:typed_data';
 import '../theme/app_colors.dart';
 import '../widgets/permission_dialog.dart';
 import '../../core/services/permission_service.dart';
@@ -7,6 +9,7 @@ import '../../core/services/auth_service.dart';
 import '../../data/models/user.dart';
 import 'countdown_screen.dart';
 import 'auth_screen.dart';
+import 'profile_screen.dart';
 
 /// 🏠 主页面 - 带用户认证功能
 class HomeScreen extends StatefulWidget {
@@ -172,17 +175,54 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             // 用户信息
             ListTile(
-              leading: CircleAvatar(
-                backgroundColor: AppColors.primary,
-                child: Text(
-                  _currentUser?.username?.substring(0, 1).toUpperCase() ?? 'U',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-              ),
+              leading: _buildUserAvatar(_currentUser!, 40),
               title: Text(_currentUser?.username ?? '用户'),
-              subtitle: Text(_currentUser?.email ?? ''),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(_currentUser?.email ?? ''),
+                  if (_currentUser?.bio != null && _currentUser!.bio!.isNotEmpty)
+                    Text(
+                      _currentUser!.bio!,
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
             ),
             const Divider(),
+            // 编辑个人资料
+            ListTile(
+              leading: const Icon(Icons.edit, color: AppColors.info),
+              title: const Text('编辑个人资料'),
+              onTap: () async {
+                Navigator.of(context).pop();
+                final result = await Navigator.of(context).push<User>(
+                  MaterialPageRoute(
+                    builder: (context) => ProfileScreen(user: _currentUser!),
+                  ),
+                );
+
+                if (result != null) {
+                  // 更新用户信息
+                  setState(() {
+                    _currentUser = result;
+                  });
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('个人资料已更新'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                }
+              },
+            ),
             // 退出登录
             ListTile(
               leading: const Icon(Icons.logout, color: AppColors.error),
@@ -276,16 +316,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: _showUserMenu,
               child: Container(
                 margin: const EdgeInsets.only(right: 16),
-                child: CircleAvatar(
-                  backgroundColor: Colors.white,
-                  child: Text(
-                    _currentUser!.username.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+                child: _buildUserAvatar(_currentUser!, 36),
               ),
             )
           else
@@ -527,5 +558,35 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!_isLoggedIn) return '立即登录';
     if (!_hasPermissions) return '授权权限';
     return '开始跑步';
+  }
+
+  /// 构建用户头像
+  Widget _buildUserAvatar(User user, double size) {
+    if (user.avatar != null && user.avatar!.isNotEmpty) {
+      try {
+        final bytes = base64Decode(user.avatar!);
+        return CircleAvatar(
+          radius: size / 2,
+          backgroundImage: MemoryImage(bytes),
+          backgroundColor: AppColors.primary,
+        );
+      } catch (e) {
+        print('头像解析失败: $e');
+      }
+    }
+
+    // 默认头像
+    return CircleAvatar(
+      radius: size / 2,
+      backgroundColor: AppColors.primary,
+      child: Text(
+        user.username.substring(0, 1).toUpperCase(),
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: size * 0.4,
+        ),
+      ),
+    );
   }
 }

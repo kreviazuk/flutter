@@ -339,6 +339,7 @@ class AuthService {
   static Future<Map<String, dynamic>> updateProfile({
     String? username,
     String? avatar,
+    String? bio,
   }) async {
     final client = _createHttpClient();
 
@@ -354,6 +355,11 @@ class AuthService {
       final body = <String, dynamic>{};
       if (username != null) body['username'] = username;
       if (avatar != null) body['avatar'] = avatar;
+      if (bio != null) body['bio'] = bio;
+
+      print('--- 更新个人资料请求 ---');
+      print('URL: ${AppConfig.apiBaseUrl}/profile');
+      print('Body: ${jsonEncode(body)}');
 
       final response = await client.put(
         Uri.parse('${AppConfig.apiBaseUrl}/profile'),
@@ -363,6 +369,10 @@ class AuthService {
         },
         body: jsonEncode(body),
       );
+
+      print('--- 更新个人资料响应 ---');
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
 
       final data = jsonDecode(response.body);
 
@@ -382,6 +392,8 @@ class AuthService {
         };
       }
     } catch (e) {
+      print('--- 更新个人资料异常 ---');
+      print(e.toString());
       return {
         'success': false,
         'message': '网络错误: $e',
