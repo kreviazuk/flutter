@@ -11,7 +11,7 @@ class AppConfig {
 
   /// 开发环境配置 - 本地开发
   static const String _devApiUrl = 'http://localhost:3000/api/auth';
-  static const String _devApiUrlAndroid = 'http://10.0.2.2:3000/api/auth';
+  static const String _devApiUrlAndroid = 'http://localhost:3000/api/auth';
 
   /// 生产环境配置 - Railway 部署地址
   static const String _prodApiUrl = 'https://flutter-production-80de.up.railway.app/api/auth';
