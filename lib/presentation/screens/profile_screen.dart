@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import '../theme/app_colors.dart';
 import '../../core/services/auth_service.dart';
 import '../../data/models/user.dart';
+import '../../l10n/app_localizations.dart';
 
 /// 👤 个人资料编辑页面
 class ProfileScreen extends StatefulWidget {
@@ -55,6 +56,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   /// 选择头像
   Future<void> _pickAvatar() async {
+    final l10n = AppLocalizations.of(context)!;
+
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -69,8 +72,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // 图片大小检查 (限制为2MB)
         if (bytes.length > 2 * 1024 * 1024) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('图片文件过大，请选择小于2MB的图片'),
+            SnackBar(
+              content: Text(l10n.imageTooLarge),
               backgroundColor: AppColors.error,
             ),
           );
@@ -85,8 +88,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('头像已选择，记得保存更改'),
+          SnackBar(
+            content: Text(l10n.avatarSelected),
             backgroundColor: AppColors.success,
           ),
         );
@@ -94,7 +97,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('选择头像失败: $e'),
+          content: Text(l10n.selectAvatarFailed(e.toString())),
           backgroundColor: AppColors.error,
         ),
       );
@@ -103,6 +106,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   /// 从相机拍照
   Future<void> _takePhoto() async {
+    final l10n = AppLocalizations.of(context)!;
+
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.camera,
@@ -117,8 +122,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // 图片大小检查 (限制为2MB)
         if (bytes.length > 2 * 1024 * 1024) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('图片文件过大，请选择小于2MB的图片'),
+            SnackBar(
+              content: Text(l10n.imageTooLarge),
               backgroundColor: AppColors.error,
             ),
           );
@@ -133,8 +138,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('头像已设置，记得保存更改'),
+          SnackBar(
+            content: Text(l10n.avatarSet),
             backgroundColor: AppColors.success,
           ),
         );
@@ -142,7 +147,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('拍照失败: $e'),
+          content: Text(l10n.cameraFailed(e.toString())),
           backgroundColor: AppColors.error,
         ),
       );
@@ -151,6 +156,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   /// 显示头像选择选项
   void _showAvatarOptions() {
+    final l10n = AppLocalizations.of(context)!;
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -161,9 +168,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              '选择头像',
-              style: TextStyle(
+            Text(
+              l10n.selectAvatar,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -174,7 +181,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 _buildOptionButton(
                   icon: Icons.photo_library,
-                  label: '相册',
+                  label: l10n.gallery,
                   onTap: () {
                     Navigator.pop(context);
                     _pickAvatar();
@@ -182,7 +189,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 _buildOptionButton(
                   icon: Icons.camera_alt,
-                  label: '拍照',
+                  label: l10n.camera,
                   onTap: () {
                     Navigator.pop(context);
                     _takePhoto();
@@ -191,7 +198,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (_avatarBytes != null)
                   _buildOptionButton(
                     icon: Icons.delete,
-                    label: '移除',
+                    label: l10n.remove,
                     onTap: () {
                       Navigator.pop(context);
                       _removeAvatar();
@@ -199,7 +206,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
               ],
             ),
-            const SizedBox(height: 10),
           ],
         ),
       ),
@@ -346,180 +352,187 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('编辑个人资料'),
+        title: Text(l10n.editProfile),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
-          if (_isLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                ),
+          TextButton(
+            onPressed: _isLoading ? null : _saveProfile,
+            child: Text(
+              l10n.save,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
               ),
-            )
-          else
-            IconButton(
-              onPressed: _saveProfile,
-              icon: const Icon(Icons.save),
-              tooltip: '保存',
             ),
+          ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 头像选择
-              _buildAvatarPicker(),
-
-              const SizedBox(height: 32),
-
-              // 用户名输入
-              TextFormField(
-                controller: _usernameController,
-                decoration: const InputDecoration(
-                  labelText: '用户名',
-                  hintText: '请输入用户名',
-                  prefixIcon: Icon(Icons.person),
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return '请输入用户名';
-                  }
-                  if (value.trim().length < 2) {
-                    return '用户名至少需要2个字符';
-                  }
-                  if (value.trim().length > 20) {
-                    return '用户名不能超过20个字符';
-                  }
-                  return null;
-                },
-                maxLength: 20,
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: AppColors.primary,
               ),
-
-              const SizedBox(height: 24),
-
-              // 个人简介输入
-              TextFormField(
-                controller: _bioController,
-                decoration: const InputDecoration(
-                  labelText: '个人简介',
-                  hintText: '介绍一下自己吧...',
-                  prefixIcon: Icon(Icons.description),
-                  border: OutlineInputBorder(),
-                  alignLabelWithHint: true,
-                ),
-                maxLines: 4,
-                maxLength: 200,
-                validator: (value) {
-                  if (value != null && value.length > 200) {
-                    return '个人简介不能超过200个字符';
-                  }
-                  return null;
-                },
-              ),
-
-              const SizedBox(height: 32),
-
-              // 保存按钮
-              ElevatedButton(
-                onPressed: _isLoading ? null : _saveProfile,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+            )
+          : Form(
+              key: _formKey,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  // 头像选择区域
+                  Center(
+                    child: GestureDetector(
+                      onTap: _showAvatarOptions,
+                      child: Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.surface,
+                          border: Border.all(
+                            color: AppColors.primary,
+                            width: 3,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Stack(
+                          children: [
+                            // 头像显示
+                            if (_avatarBytes != null)
+                              ClipOval(
+                                child: Image.memory(
+                                  _avatarBytes!,
+                                  width: 120,
+                                  height: 120,
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            else
+                              const Center(
+                                child: Icon(
+                                  Icons.person,
+                                  size: 60,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            // 编辑图标
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                child: _isLoading
-                    ? const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
+
+                  const SizedBox(height: 32),
+
+                  // 用户名输入
+                  TextFormField(
+                    controller: _usernameController,
+                    decoration: InputDecoration(
+                      labelText: l10n.username,
+                      hintText: l10n.username,
+                      prefixIcon: const Icon(Icons.person),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return '请输入用户名'; // 这里暂时保持中文，因为没有在arb文件中定义
+                      }
+                      if (value.trim().length < 2) {
+                        return '用户名至少需要2个字符'; // 这里暂时保持中文，因为没有在arb文件中定义
+                      }
+                      return null;
+                    },
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // 个人简介输入
+                  TextFormField(
+                    controller: _bioController,
+                    maxLines: 4,
+                    maxLength: 200,
+                    decoration: InputDecoration(
+                      labelText: l10n.bio,
+                      hintText: '介绍一下自己吧...', // 这里暂时保持中文，因为没有在arb文件中定义
+                      prefixIcon: const Icon(Icons.edit_note),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // 底部按钮
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          SizedBox(width: 12),
-                          Text('保存中...'),
-                        ],
-                      )
-                    : const Text(
-                        '保存更改',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          child: Text(l10n.cancel),
                         ),
                       ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // 提示信息
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.info.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppColors.info.withOpacity(0.3),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: AppColors.info,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '温馨提示',
-                          style: TextStyle(
-                            color: AppColors.info,
-                            fontWeight: FontWeight.bold,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _saveProfile,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
+                          child: Text(l10n.save),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '• 头像建议尺寸：200x200像素\n'
-                      '• 用户名长度：2-20个字符\n'
-                      '• 个人简介最多200个字符\n'
-                      '• 修改后记得点击保存按钮',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 14,
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 }

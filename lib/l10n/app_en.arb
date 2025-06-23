@@ -1,0 +1,109 @@
+{
+  "appTitle": "🏃‍♂️ Running Tracker",
+  "@appTitle": {
+    "description": "The application title"
+  },
+  
+  "homeTitle": "Home",
+  "profileTitle": "Profile",
+  "settingsTitle": "Settings",
+  "languageTitle": "Language",
+  
+  "startRunning": "Start Running",
+  "locationPermissionRequired": "Location Permission Required",
+  "locationPermissionMessage": "This app needs location permission to track your running route.",
+  "grantPermission": "Grant Permission",
+  "deny": "Deny",
+  "gettingLocation": "Getting location...",
+  "locationReady": "Location ready",
+  "locationFailed": "Failed to get location",
+  "gpsNotEnabled": "GPS service not enabled",
+  
+  "login": "Login",
+  "register": "Register",
+  "logout": "Logout",
+  "welcome": "Welcome",
+  "welcomeBack": "Welcome back, {username}!",
+  "@welcomeBack": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  
+  "username": "Username",
+  "email": "Email",
+  "password": "Password",
+  "confirmPassword": "Confirm Password",
+  "bio": "Bio",
+  "save": "Save",
+  "cancel": "Cancel",
+  "edit": "Edit",
+  "delete": "Delete",
+  
+  "editProfile": "Edit Profile",
+  "selectAvatar": "Select Avatar",
+  "gallery": "Gallery",
+  "camera": "Camera",
+  "remove": "Remove",
+  "avatarSelected": "Avatar selected, remember to save changes",
+  "avatarSet": "Avatar set, remember to save changes",
+  "imageTooLarge": "Image file too large, please select an image smaller than 2MB",
+  "selectAvatarFailed": "Failed to select avatar: {error}",
+  "@selectAvatarFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "cameraFailed": "Camera failed: {error}",
+  "@cameraFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  
+  "language": "Language",
+  "chinese": "中文",
+  "english": "English",
+  "languageChanged": "Language changed to {language}",
+  "@languageChanged": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  
+  "countdown": "Countdown",
+  "ready": "Ready",
+  "go": "Go!",
+  "seconds": "{count} seconds",
+  "@seconds": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  
+  "running": "Running",
+  "distance": "Distance",
+  "time": "Time",
+  "speed": "Speed",
+  "pace": "Pace",
+  "pause": "Pause",
+  "resume": "Resume",
+  "stop": "Stop",
+  "finish": "Finish",
+  
+  "profileUpdated": "Profile updated",
+  "loggedOut": "Logged out",
+  "pleaseLoginFirst": "Please login first to start running",
+  "permissionSettings": "Permission Settings",
+  "initializingApp": "Initializing app..."
+} 

@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:convert';
-import 'dart:typed_data';
 import '../theme/app_colors.dart';
 import '../widgets/permission_dialog.dart';
 import '../../core/services/permission_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../data/models/user.dart';
+import '../../l10n/app_localizations.dart';
 import 'countdown_screen.dart';
 import 'auth_screen.dart';
 import 'profile_screen.dart';
+import 'settings_screen.dart';
 
 /// 🏠 主页面 - 带用户认证功能
 class HomeScreen extends StatefulWidget {
@@ -93,9 +94,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _startGettingLocation() async {
+    final l10n = AppLocalizations.of(context)!;
+
     setState(() {
       _isGettingLocation = true;
-      _locationStatus = '正在获取位置...';
+      _locationStatus = l10n.gettingLocation;
     });
 
     try {
@@ -103,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         setState(() {
-          _locationStatus = 'GPS服务未开启';
+          _locationStatus = l10n.gpsNotEnabled;
           _isGettingLocation = false;
         });
         return;
@@ -117,11 +120,11 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _currentPosition = position;
         _isGettingLocation = false;
-        _locationStatus = '位置已就绪';
+        _locationStatus = l10n.locationReady;
       });
     } catch (e) {
       setState(() {
-        _locationStatus = '获取位置失败';
+        _locationStatus = l10n.locationFailed;
         _isGettingLocation = false;
       });
     }
@@ -149,6 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (result != null) {
+      final l10n = AppLocalizations.of(context)!;
       // 登录成功，更新用户状态
       setState(() {
         _isLoggedIn = true;
@@ -157,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('欢迎回来，${result.username}！'),
+          content: Text(l10n.welcomeBack(result.username)),
           backgroundColor: AppColors.success,
         ),
       );
@@ -166,6 +170,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// 显示用户菜单
   void _showUserMenu() {
+    final l10n = AppLocalizations.of(context)!;
+
     showModalBottomSheet(
       context: context,
       builder: (context) => Container(
@@ -176,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // 用户信息
             ListTile(
               leading: _buildUserAvatar(_currentUser!, 40),
-              title: Text(_currentUser?.username ?? '用户'),
+              title: Text(_currentUser?.username ?? l10n.welcome),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -199,7 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // 编辑个人资料
             ListTile(
               leading: const Icon(Icons.edit, color: AppColors.info),
-              title: const Text('编辑个人资料'),
+              title: Text(l10n.editProfile),
               onTap: () async {
                 Navigator.of(context).pop();
                 final result = await Navigator.of(context).push<User>(
@@ -215,18 +221,31 @@ class _HomeScreenState extends State<HomeScreen> {
                   });
 
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('个人资料已更新'),
+                    SnackBar(
+                      content: Text(l10n.profileUpdated),
                       backgroundColor: AppColors.success,
                     ),
                   );
                 }
               },
             ),
+            // 设置
+            ListTile(
+              leading: const Icon(Icons.settings, color: AppColors.textSecondary),
+              title: Text(l10n.settingsTitle),
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsScreen(),
+                  ),
+                );
+              },
+            ),
             // 退出登录
             ListTile(
               leading: const Icon(Icons.logout, color: AppColors.error),
-              title: const Text('退出登录'),
+              title: Text(l10n.logout),
               onTap: () async {
                 Navigator.of(context).pop();
                 await AuthService.logout();
@@ -235,8 +254,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   _currentUser = null;
                 });
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('已退出登录'),
+                  SnackBar(
+                    content: Text(l10n.loggedOut),
                     backgroundColor: AppColors.info,
                   ),
                 );
@@ -249,11 +268,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _startRunning() async {
+    final l10n = AppLocalizations.of(context)!;
+
     // 检查登录状态
     if (!_isLoggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('请先登录后再开始跑步'),
+        SnackBar(
+          content: Text(l10n.pleaseLoginFirst),
           backgroundColor: AppColors.warning,
         ),
       );
@@ -280,19 +301,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_isCheckingPermissions || _isCheckingAuth) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(
+              const CircularProgressIndicator(
                 color: AppColors.primary,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Text(
-                '正在初始化应用...',
-                style: TextStyle(
+                l10n.initializingApp,
+                style: const TextStyle(
                   fontSize: 16,
                   color: AppColors.textSecondary,
                 ),
@@ -305,7 +328,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('🏃‍♂️ 跑步追踪器'),
+        title: Text(l10n.appTitle),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -323,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
             TextButton.icon(
               onPressed: _showAuthScreen,
               icon: const Icon(Icons.login, color: Colors.white),
-              label: const Text('登录', style: TextStyle(color: Colors.white)),
+              label: Text(l10n.login, style: const TextStyle(color: Colors.white)),
             ),
 
           if (!_hasPermissions)
@@ -333,7 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icons.security,
                 color: AppColors.warning,
               ),
-              tooltip: '权限设置',
+              tooltip: l10n.permissionSettings,
             ),
         ],
       ),
@@ -371,11 +394,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '欢迎，${_currentUser!.username}！',
+                        l10n.welcomeBack(_currentUser!.username),
                         style: const TextStyle(
+                          color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Colors.white,
                         ),
                       ),
                     ],
@@ -383,50 +406,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
 
-              // 主图标
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  _hasPermissions ? Icons.directions_run : Icons.security,
-                  size: 120,
-                  color: Colors.white,
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // 主标题
-              Text(
-                _getMainTitle(),
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 16),
-
-              // 副标题
-              Text(
-                _getSubTitle(),
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.white70,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 40),
-
-              // 位置状态指示器
-              if (_hasPermissions && _isLoggedIn) ...[
+              // 位置状态显示
+              if (_locationStatus.isNotEmpty) ...[
                 Container(
+                  margin: const EdgeInsets.only(bottom: 30),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
@@ -447,14 +430,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       else
                         Icon(
                           _currentPosition != null ? Icons.location_on : Icons.location_off,
-                          color: _currentPosition != null ? Colors.white : AppColors.warning,
+                          color: Colors.white,
                           size: 16,
                         ),
                       const SizedBox(width: 8),
                       Text(
-                        _locationStatus.isEmpty
-                            ? (_currentPosition != null ? '位置已就绪' : '位置获取中...')
-                            : _locationStatus,
+                        _locationStatus,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 14,
@@ -463,72 +444,107 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 32),
               ],
 
-              // 主按钮
-              ElevatedButton(
-                onPressed: _startRunning,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  elevation: 8,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      _getButtonIcon(),
-                      size: 24,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      _getButtonText(),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+              // 开始跑步按钮
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),
+                child: Material(
+                  color: Colors.white,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    onTap: _startRunning,
+                    borderRadius: BorderRadius.circular(100),
+                    child: Container(
+                      width: 200,
+                      height: 200,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            AppColors.secondary,
+                            AppColors.primary,
+                          ],
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.directions_run,
+                            size: 60,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            l10n.startRunning,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
 
-              // 底部提示
-              if (!_isLoggedIn) ...[
-                const SizedBox(height: 24),
+              const SizedBox(height: 40),
+
+              // 权限提示
+              if (!_hasPermissions)
                 Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  margin: const EdgeInsets.symmetric(horizontal: 40),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withOpacity(0.3)),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.3),
+                    ),
                   ),
-                  child: Row(
+                  child: Column(
                     children: [
-                      const Icon(
-                        Icons.info,
-                        color: Colors.white70,
-                        size: 20,
+                      Icon(
+                        Icons.security,
+                        color: Colors.white.withOpacity(0.8),
+                        size: 32,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: const Text(
-                          '请先登录账户，记录你的跑步数据',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.locationPermissionRequired,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.locationPermissionMessage,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 14,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
                 ),
-              ],
             ],
           ),
         ),
@@ -536,39 +552,22 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  String _getMainTitle() {
-    if (!_isLoggedIn) return '欢迎使用跑步追踪器！';
-    if (!_hasPermissions) return '需要权限才能开始跑步';
-    return '准备开始你的跑步之旅！';
-  }
-
-  String _getSubTitle() {
-    if (!_isLoggedIn) return '登录账户，开始记录你的精彩跑步历程';
-    if (!_hasPermissions) return '请授权位置权限以使用跑步功能';
-    return '点击下方按钮开始你的健康运动';
-  }
-
-  IconData _getButtonIcon() {
-    if (!_isLoggedIn) return Icons.login;
-    if (!_hasPermissions) return Icons.security;
-    return Icons.play_arrow;
-  }
-
-  String _getButtonText() {
-    if (!_isLoggedIn) return '立即登录';
-    if (!_hasPermissions) return '授权权限';
-    return '开始跑步';
-  }
-
   /// 构建用户头像
   Widget _buildUserAvatar(User user, double size) {
     if (user.avatar != null && user.avatar!.isNotEmpty) {
       try {
-        final bytes = base64Decode(user.avatar!);
-        return CircleAvatar(
-          radius: size / 2,
-          backgroundImage: MemoryImage(bytes),
-          backgroundColor: AppColors.primary,
+        final avatarBytes = base64Decode(user.avatar!);
+        return Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2),
+            image: DecorationImage(
+              image: MemoryImage(avatarBytes),
+              fit: BoxFit.cover,
+            ),
+          ),
         );
       } catch (e) {
         print('头像解析失败: $e');
@@ -576,16 +575,18 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     // 默认头像
-    return CircleAvatar(
-      radius: size / 2,
-      backgroundColor: AppColors.primary,
-      child: Text(
-        user.username.substring(0, 1).toUpperCase(),
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: size * 0.4,
-        ),
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.secondary,
+        border: Border.all(color: Colors.white, width: 2),
+      ),
+      child: Icon(
+        Icons.person,
+        color: Colors.white,
+        size: size * 0.6,
       ),
     );
   }

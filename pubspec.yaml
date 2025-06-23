@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   # UI组件
   cupertino_icons: ^1.0.8
@@ -58,7 +60,7 @@ dependencies:
   image_picker: ^1.0.7
 
   # 实用工具
-  intl: ^0.19.0
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
@@ -83,6 +85,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # 启用国际化代码生成
+  generate: true
 
   # To add assets to your application, add an assets section, like this:
   # assets:
