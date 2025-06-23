@@ -16,8 +16,16 @@ app.use(helmet());
 
 // CORS配置
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:8080',
-  credentials: true
+  origin: [
+    'http://localhost:8080',  // 前端Web应用
+    'http://localhost:3001',  // 同端口开发
+    'http://127.0.0.1:8080',  // 备用地址
+    'http://127.0.0.1:3001',  // 备用地址
+    process.env.FRONTEND_URL  // 环境变量配置
+  ].filter(Boolean),
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // 请求速率限制
