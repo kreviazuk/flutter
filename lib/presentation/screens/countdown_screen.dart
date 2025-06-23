@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import '../theme/app_colors.dart';
 import 'running_screen_gmaps.dart';
+import '../../l10n/app_localizations.dart';
 
 /// 🏁 马里奥赛车风格倒计时页面
 class CountdownScreen extends StatefulWidget {
@@ -218,6 +219,8 @@ class _CountdownScreenState extends State<CountdownScreen> with TickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -248,7 +251,7 @@ class _CountdownScreenState extends State<CountdownScreen> with TickerProviderSt
                       return Transform.scale(
                         scale: 1.0 + _backgroundAnimation.value * 0.1,
                         child: Text(
-                          '🏃‍♂️ 准备开始跑步！',
+                          l10n.readyToRun,
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -349,7 +352,7 @@ class _CountdownScreenState extends State<CountdownScreen> with TickerProviderSt
                       return Opacity(
                         opacity: 0.7 + _backgroundAnimation.value * 0.3,
                         child: Text(
-                          _isFinished ? '🎉 开始你的跑步之旅！' : '⚡ 马上就要开始了...',
+                          _isFinished ? l10n.startYourJourney : l10n.almostReady,
                           style: TextStyle(
                             fontSize: 18,
                             color: Colors.white.withOpacity(0.8),

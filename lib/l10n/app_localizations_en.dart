@@ -45,7 +45,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get locationReady => 'Location ready';
 
   @override
-  String get locationFailed => 'Failed to get location';
+  String get locationFailed => 'Location failed, using default location';
 
   @override
   String get gpsNotEnabled => 'GPS service not enabled';
@@ -197,4 +197,276 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get initializingApp => 'Initializing app...';
+
+  @override
+  String get termsOfService => 'Terms of Service';
+
+  @override
+  String get privacyPolicy => 'Privacy Policy';
+
+  @override
+  String get aboutApp => 'About App';
+
+  @override
+  String get version => 'Version';
+
+  @override
+  String get developer => 'Developer';
+
+  @override
+  String get runningTrackerTeam => 'Running Tracker Team';
+
+  @override
+  String get legalInfo => 'Legal Information';
+
+  @override
+  String get termsTitle => 'Terms of Service';
+
+  @override
+  String get privacyTitle => 'Privacy Policy';
+
+  @override
+  String lastUpdated(String date) {
+    return 'Last updated: $date';
+  }
+
+  @override
+  String get termsContent1 => 'Welcome to Running Tracker! These terms and conditions outline the rules and regulations for the use of Running Tracker\'s mobile application.';
+
+  @override
+  String get termsContent2 => 'By accessing this app, we assume you accept these terms and conditions. Do not continue to use Running Tracker if you do not agree to take all of the terms and conditions stated on this page.';
+
+  @override
+  String get termsContent3 => '1. User Accounts';
+
+  @override
+  String get termsContent4 => 'When you create an account with us, you must provide information that is accurate, complete, and current at all times. You are responsible for safeguarding the password and for all activities that occur under your account.';
+
+  @override
+  String get termsContent5 => '2. Use License';
+
+  @override
+  String get termsContent6 => 'Permission is granted to temporarily use Running Tracker for personal, non-commercial transitory viewing only. This license shall automatically terminate if you violate any of these restrictions.';
+
+  @override
+  String get termsContent7 => '3. Privacy';
+
+  @override
+  String get termsContent8 => 'Your privacy is important to us. Please review our Privacy Policy, which also governs your use of the Service, to understand our practices.';
+
+  @override
+  String get termsContent9 => '4. Prohibited Uses';
+
+  @override
+  String get termsContent10 => 'You may not use our service for any unlawful purpose or to solicit others to perform unlawful acts, to violate any international, federal, provincial, or state regulations, rules, laws, or local ordinances.';
+
+  @override
+  String get termsContent11 => '5. Service Availability';
+
+  @override
+  String get termsContent12 => 'We reserve the right to withdraw or amend our service, and any service or material we provide via the app, in our sole discretion without notice.';
+
+  @override
+  String get termsContent13 => '6. Contact Information';
+
+  @override
+  String get termsContent14 => 'If you have any questions about these Terms and Conditions, please contact us at support@runningtracker.app';
+
+  @override
+  String get privacyContent1 => 'This Privacy Policy describes how Running Tracker collects, uses, and protects your information when you use our mobile application.';
+
+  @override
+  String get privacyContent2 => '1. Information We Collect';
+
+  @override
+  String get privacyContent3 => '• Account Information: When you create an account, we collect your username, email address, and optional profile information.';
+
+  @override
+  String get privacyContent4 => '• Location Data: With your permission, we collect GPS location data to track your running routes and provide mapping services.';
+
+  @override
+  String get privacyContent5 => '• Running Data: We store your running statistics, including distance, time, speed, and route information.';
+
+  @override
+  String get privacyContent6 => '• Device Information: We may collect information about your device, including device model, operating system, and app version.';
+
+  @override
+  String get privacyContent7 => '2. How We Use Your Information';
+
+  @override
+  String get privacyContent8 => '• To provide and maintain our running tracking services';
+
+  @override
+  String get privacyContent9 => '• To display your running statistics and progress';
+
+  @override
+  String get privacyContent10 => '• To improve our app functionality and user experience';
+
+  @override
+  String get privacyContent11 => '• To send you important updates about the app (with your consent)';
+
+  @override
+  String get privacyContent12 => '3. Information Sharing';
+
+  @override
+  String get privacyContent13 => 'We do not sell, trade, or otherwise transfer your personal information to third parties without your consent, except as described in this policy.';
+
+  @override
+  String get privacyContent14 => '4. Data Security';
+
+  @override
+  String get privacyContent15 => 'We implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.';
+
+  @override
+  String get privacyContent16 => '5. Your Rights';
+
+  @override
+  String get privacyContent17 => 'You have the right to access, update, or delete your personal information. You can do this through the app settings or by contacting us.';
+
+  @override
+  String get privacyContent18 => '6. Location Data';
+
+  @override
+  String get privacyContent19 => 'Location data is only collected when you actively use the running tracking feature and with your explicit permission. You can disable location access at any time through your device settings.';
+
+  @override
+  String get privacyContent20 => '7. Data Retention';
+
+  @override
+  String get privacyContent21 => 'We retain your data as long as your account is active or as needed to provide services. You may request deletion of your account and data at any time.';
+
+  @override
+  String get privacyContent22 => '8. Contact Us';
+
+  @override
+  String get privacyContent23 => 'If you have questions about this Privacy Policy, please contact us at privacy@runningtracker.app';
+
+  @override
+  String get appDescription => 'Professional running tracking app that records every step of your journey';
+
+  @override
+  String get contactUs => 'Contact Us';
+
+  @override
+  String get technicalSupport => 'Technical Support';
+
+  @override
+  String get privacyConsultation => 'Privacy Consultation';
+
+  @override
+  String get allRightsReserved => 'All Rights Reserved';
+
+  @override
+  String get legalCompliance => 'This app complies with relevant laws and regulations to protect user privacy rights';
+
+  @override
+  String get aboutSubtitle => 'App info, version, legal information, contact';
+
+  @override
+  String languageSwitchFailed(String error) {
+    return 'Language switch failed: $error';
+  }
+
+  @override
+  String get readyToRun => '🏃‍♂️ Ready to start running!';
+
+  @override
+  String get startYourJourney => '🎉 Start your running journey!';
+
+  @override
+  String get almostReady => '⚡ Almost ready...';
+
+  @override
+  String get gpsReady => 'GPS ready, current location locked!';
+
+  @override
+  String get gettingGpsLocation => 'Getting GPS location...';
+
+  @override
+  String get gpsServiceNotEnabled => 'GPS service not enabled, using default location';
+
+  @override
+  String runningMode(Object fps, Object mode) {
+    return 'Running... (${fps}FPS $mode mode)';
+  }
+
+  @override
+  String gpsReadyMode(Object fps, Object mode) {
+    return 'GPS ready! 🎮 ${fps}FPS $mode mode';
+  }
+
+  @override
+  String get currentLocation => '🏃‍♂️ Current Location';
+
+  @override
+  String get runningStarted => 'Running started!';
+
+  @override
+  String get runningCompleted => 'Running completed!';
+
+  @override
+  String pausedMode(Object fps, Object mode) {
+    return 'Paused (${fps}FPS $mode mode)';
+  }
+
+  @override
+  String get runningEnded => 'Running ended - Great job! 🎉';
+
+  @override
+  String get runningComplete => '🎉 Running Complete!';
+
+  @override
+  String get totalDistance => 'Total Distance';
+
+  @override
+  String get averageSpeed => 'Average Speed';
+
+  @override
+  String get caloriesBurned => 'Calories Burned';
+
+  @override
+  String get simulatedDataNote => '📱 This is simulated data, actual use requires GPS enabled';
+
+  @override
+  String get startSimulatedRun => 'Start Simulated Run';
+
+  @override
+  String get continueText => 'Continue';
+
+  @override
+  String get calories => 'Calories';
+
+  @override
+  String get threeDMode => '3D';
+
+  @override
+  String get twoDMode => '2D';
+
+  @override
+  String get kilometers => 'km';
+
+  @override
+  String get kilometersPerHour => 'km/h';
+
+  @override
+  String get kcal => 'kcal';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get mode => ' mode';
+
+  @override
+  String get highFrameRate3DMode => 'High Frame Rate 3D Mode';
+
+  @override
+  String switchToFpsMode(String fps) {
+    return '🎮 Switch to ${fps}FPS mode';
+  }
+
+  @override
+  String switchToViewMode(String mode) {
+    return '🌐 Switch to $mode view';
+  }
 }

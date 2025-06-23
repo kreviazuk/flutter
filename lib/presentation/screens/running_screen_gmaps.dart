@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import '../theme/app_colors.dart';
+import '../../l10n/app_localizations.dart';
 
 /// 🏃‍♂️ 跑步追踪页面 - 高帧率3D模式
 class RunningScreenGMaps extends StatefulWidget {
@@ -54,7 +55,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
   // 跑步状态
   bool _isRunning = false;
   bool _isPaused = false;
-  String _statusMessage = '正在获取位置...';
+  String _statusMessage = '';
 
   // 跑步数据
   double _totalDistance = 0.0;
@@ -113,6 +114,16 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
         _statusMessage = '正在获取GPS位置...';
       });
 
+      // 异步更新国际化文本
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
+          setState(() {
+            _statusMessage = l10n.gettingGpsLocation;
+          });
+        }
+      });
+
       // 检查位置服务是否开启
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -131,6 +142,16 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
             speedAccuracy: 1.0,
           );
           _isLocationLoaded = true;
+        });
+
+        // 异步更新国际化文本
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            final l10n = AppLocalizations.of(context)!;
+            setState(() {
+              _statusMessage = l10n.gpsServiceNotEnabled;
+            });
+          }
         });
         return;
       }
@@ -171,6 +192,34 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
         );
         _isLocationLoaded = true;
       });
+
+      // 异步更新国际化文本
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
+          setState(() {
+            _statusMessage = l10n.locationFailed;
+          });
+        }
+      });
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 在这里可以安全地访问 AppLocalizations
+    _updateInitialStatusMessage();
+  }
+
+  void _updateInitialStatusMessage() {
+    if (mounted) {
+      final l10n = AppLocalizations.of(context)!;
+      setState(() {
+        if (_statusMessage.contains('GPS就绪，当前位置已锁定！ 🎮 高帧率3D模式')) {
+          _statusMessage = '${l10n.gpsReady} 🎮 ${l10n.highFrameRate3DMode}';
+        }
+      });
     }
   }
 
@@ -208,9 +257,13 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
         milliseconds: _isHighFrameRate ? 8 : 16, // 120fps or 60fps
       );
 
+      final l10n = AppLocalizations.of(context)!;
+      final modeText = _is3DMode ? l10n.threeDMode : l10n.twoDMode;
       _statusMessage = _isRunning
-          ? '跑步中... (${_currentFPS}FPS ${_is3DMode ? "3D" : "2D"}模式)'
-          : 'GPS就绪！ 🎮 ${_currentFPS}FPS ${_is3DMode ? "3D" : "2D"}模式';
+          ? '${l10n.runningMode}'.replaceAll('{fps}', '$_currentFPS').replaceAll('{mode}', modeText)
+          : '${l10n.gpsReadyMode}'
+              .replaceAll('{fps}', '$_currentFPS')
+              .replaceAll('{mode}', modeText);
     });
 
     // 显示帧率切换提示
@@ -223,9 +276,13 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
       _is3DMode = !_is3DMode;
       _currentTilt = _is3DMode ? 45.0 : 0.0;
 
+      final l10n = AppLocalizations.of(context)!;
+      final modeText = _is3DMode ? l10n.threeDMode : l10n.twoDMode;
       _statusMessage = _isRunning
-          ? '跑步中... (${_currentFPS}FPS ${_is3DMode ? "3D" : "2D"}模式)'
-          : 'GPS就绪！ 🎮 ${_currentFPS}FPS ${_is3DMode ? "3D" : "2D"}模式';
+          ? '${l10n.runningMode}'.replaceAll('{fps}', '$_currentFPS').replaceAll('{mode}', modeText)
+          : '${l10n.gpsReadyMode}'
+              .replaceAll('{fps}', '$_currentFPS')
+              .replaceAll('{mode}', modeText);
     });
 
     // 平滑切换3D视角
@@ -247,7 +304,8 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
               color: Colors.white,
             ),
             const SizedBox(width: 8),
-            Text('🎮 切换到 ${_currentFPS}FPS 模式'),
+            Text('${AppLocalizations.of(context)!.switchToFpsMode}'
+                .replaceAll('{fps}', '$_currentFPS')),
           ],
         ),
         backgroundColor: AppColors.primary,
@@ -268,7 +326,11 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
               color: Colors.white,
             ),
             const SizedBox(width: 8),
-            Text('🌐 切换到 ${_is3DMode ? "3D" : "2D"} 视角'),
+            Text('${AppLocalizations.of(context)!.switchToViewMode}'.replaceAll(
+                '{mode}',
+                _is3DMode
+                    ? AppLocalizations.of(context)!.threeDMode
+                    : AppLocalizations.of(context)!.twoDMode)),
           ],
         ),
         backgroundColor: AppColors.secondary,
@@ -315,8 +377,9 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
           position: currentLatLng,
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
           infoWindow: InfoWindow(
-            title: '🏃‍♂️ 当前位置',
-            snippet: '${_currentFPS}FPS ${_is3DMode ? "3D" : "2D"}模式',
+            title: AppLocalizations.of(context)!.currentLocation,
+            snippet:
+                '${_currentFPS}FPS ${_is3DMode ? AppLocalizations.of(context)!.threeDMode : AppLocalizations.of(context)!.twoDMode}${AppLocalizations.of(context)!.mode}',
           ),
         ),
       );
@@ -328,37 +391,26 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     setState(() {
       _isRunning = true;
       _isPaused = false;
-      _statusMessage = '跑步中... (${_currentFPS}FPS ${_is3DMode ? "3D" : "2D"}模式)';
-      _isSimulating = true;
     });
 
-    // 启用高帧率模式
-    if (!_isHighFrameRate) {
-      _toggleFrameRate();
-    }
+    final l10n = AppLocalizations.of(context)!;
+    _updateStatusMessage(l10n);
 
-    // 开始帧率动画循环
-    _frameController.repeat();
-
-    // 添加起点标记
-    if (_currentPosition != null) {
-      final startPoint = LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
-      _routePoints.add(startPoint);
-
-      setState(() {
-        _markers.add(
-          Marker(
-            markerId: const MarkerId('start_point'),
-            position: startPoint,
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-            infoWindow: const InfoWindow(
-              title: '🚀 起点',
-              snippet: '跑步开始！',
-            ),
-          ),
-        );
-      });
-    }
+    // 添加开始标记
+    _markers.add(
+      Marker(
+        markerId: const MarkerId('start'),
+        position: LatLng(
+          _currentPosition!.latitude,
+          _currentPosition!.longitude,
+        ),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        infoWindow: InfoWindow(
+          title: '🏃‍♀️ ${l10n.runningStarted}',
+          snippet: l10n.runningStarted,
+        ),
+      ),
+    );
 
     // 开始模拟位置追踪（更高频率）
     _startSimulatedLocationTracking();
@@ -438,18 +490,27 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
   void _pauseRunning() {
     setState(() {
       _isPaused = !_isPaused;
-      _statusMessage = _isPaused
-          ? '已暂停 (${_currentFPS}FPS ${_is3DMode ? "3D" : "2D"}模式)'
-          : '跑步中... (${_currentFPS}FPS ${_is3DMode ? "3D" : "2D"}模式)';
     });
 
+    final l10n = AppLocalizations.of(context)!;
+    _updateStatusMessage(l10n);
+
     if (_isPaused) {
-      _frameController.stop();
+      _timer?.cancel();
+      _simulationTimer?.cancel();
     } else {
-      _frameController.repeat();
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (_isRunning && !_isPaused) {
+          setState(() {
+            _elapsedTime++;
+            _updateRunningStats();
+          });
+        }
+      });
+      _startSimulatedLocationTracking();
     }
 
-    HapticFeedback.mediumImpact();
+    HapticFeedback.lightImpact();
   }
 
   /// 停止跑步
@@ -457,34 +518,36 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     setState(() {
       _isRunning = false;
       _isPaused = false;
-      _isSimulating = false;
-      _statusMessage = '跑步结束 - 太棒了！ 🎉';
     });
 
-    _simulationTimer?.cancel();
-    _timer?.cancel();
-    _frameController.stop();
+    final l10n = AppLocalizations.of(context)!;
+    _statusMessage = l10n.runningEnded;
 
-    // 添加终点标记
+    _timer?.cancel();
+    _simulationTimer?.cancel();
+
+    // 添加结束标记
     if (_currentPosition != null) {
-      final endPoint = LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
-      setState(() {
-        _markers.add(
-          Marker(
-            markerId: const MarkerId('end_point'),
-            position: endPoint,
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-            infoWindow: const InfoWindow(
-              title: '🏁 终点',
-              snippet: '跑步完成！',
-            ),
+      _markers.add(
+        Marker(
+          markerId: const MarkerId('end'),
+          position: LatLng(
+            _currentPosition!.latitude,
+            _currentPosition!.longitude,
           ),
-        );
-      });
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          infoWindow: InfoWindow(
+            title: '🏁 ${l10n.runningCompleted}',
+            snippet: l10n.runningCompleted,
+          ),
+        ),
+      );
     }
 
-    HapticFeedback.heavyImpact();
-    _showRunSummary();
+    // 显示跑步总结
+    _showRunningSummary();
+
+    HapticFeedback.mediumImpact();
   }
 
   /// 更新跑步位置
@@ -551,85 +614,45 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
   }
 
   /// 显示跑步总结
-  void _showRunSummary() {
+  void _showRunningSummary() {
+    final l10n = AppLocalizations.of(context)!;
+
     showDialog(
       context: context,
-      barrierDismissible: false,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Text('🎉 跑步完成！'),
-            Spacer(),
-            Icon(Icons.sports_score, color: AppColors.primary),
-          ],
-        ),
+        title: Text(l10n.runningComplete),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildSummaryItem(
-                '总距离', '${(_totalDistance / 1000).toStringAsFixed(2)} 公里', Icons.straighten),
-            _buildSummaryItem('用时', _formatTime(_elapsedTime), Icons.timer),
+                l10n.totalDistance,
+                '${(_totalDistance / 1000).toStringAsFixed(2)} ${l10n.kilometers}',
+                Icons.straighten),
+            _buildSummaryItem(l10n.time, _formatTime(_elapsedTime), Icons.timer),
             _buildSummaryItem(
-                '平均速度', '${(_averageSpeed * 3.6).toStringAsFixed(1)} 公里/小时', Icons.speed),
-            _buildSummaryItem('当前配速', '${_formatPace(_averageSpeed)} /公里', Icons.directions_run),
-            _buildSummaryItem('消耗卡路里', '$_calories 千卡', Icons.local_fire_department),
-            _buildSummaryItem('路线点数', '${_routePoints.length}', Icons.route),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primary.withOpacity(0.1),
-                    AppColors.secondary.withOpacity(0.1)
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(12),
+                l10n.averageSpeed,
+                '${(_averageSpeed * 3.6).toStringAsFixed(1)} ${l10n.kilometersPerHour}',
+                Icons.speed),
+            _buildSummaryItem(
+                l10n.caloriesBurned, '$_calories ${l10n.kcal}', Icons.local_fire_department),
+            const SizedBox(height: 16),
+            Text(
+              l10n.simulatedDataNote,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
               ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.gamepad, size: 16, color: AppColors.primary),
-                      const SizedBox(width: 4),
-                      Text(
-                        '性能统计: ${_currentFPS}FPS ${_is3DMode ? "3D" : "2D"}模式',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    '📱 这是模拟数据，实际使用需要开启GPS',
-                    style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                  ),
-                ],
-              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
         actions: [
-          TextButton.icon(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
-            },
-            icon: const Icon(Icons.home),
-            label: const Text('完成'),
-          ),
-          ElevatedButton.icon(
+          TextButton(
             onPressed: () {
               Navigator.of(context).pop();
               _resetRunning();
             },
-            icon: const Icon(Icons.refresh),
-            label: const Text('重新开始'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-            ),
+            child: Text(l10n.close),
           ),
         ],
       ),
@@ -668,7 +691,10 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
 
       // 清除所有标记，重新添加当前位置
       _markers.clear();
-      _statusMessage = 'GPS就绪！ 🎮 ${_currentFPS}FPS ${_is3DMode ? "3D" : "2D"}模式';
+      final l10n = AppLocalizations.of(context)!;
+      _statusMessage = '${l10n.gpsReadyMode}'
+          .replaceAll('{fps}', '$_currentFPS')
+          .replaceAll('{mode}', _is3DMode ? l10n.threeDMode : l10n.twoDMode);
     });
 
     // 重置到初始位置
@@ -741,8 +767,28 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     );
   }
 
+  /// 更新状态消息
+  void _updateStatusMessage(AppLocalizations l10n) {
+    final modeText = _is3DMode ? l10n.threeDMode : l10n.twoDMode;
+    if (_isRunning) {
+      if (_isPaused) {
+        _statusMessage =
+            '${l10n.pausedMode}'.replaceAll('{fps}', '$_currentFPS').replaceAll('{mode}', modeText);
+      } else {
+        _statusMessage = '${l10n.runningMode}'
+            .replaceAll('{fps}', '$_currentFPS')
+            .replaceAll('{mode}', modeText);
+      }
+    } else {
+      _statusMessage =
+          '${l10n.gpsReadyMode}'.replaceAll('{fps}', '$_currentFPS').replaceAll('{mode}', modeText);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: Stack(
         children: [
@@ -919,7 +965,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '🎮 ${_currentFPS}FPS ${_is3DMode ? "3D" : "2D"}模式',
+                            '🎮 ${_currentFPS}FPS ${_is3DMode ? l10n.threeDMode : l10n.twoDMode}${l10n.mode}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
@@ -933,10 +979,12 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildStatItem('距离', '${(_totalDistance / 1000).toStringAsFixed(2)} km'),
-                      _buildStatItem('时间', _formatTime(_elapsedTime)),
-                      _buildStatItem('速度', '${_formatSpeed(_currentSpeed)} km/h'),
-                      _buildStatItem('卡路里', '$_calories'),
+                      _buildStatItem(l10n.distance,
+                          '${(_totalDistance / 1000).toStringAsFixed(2)} ${l10n.kilometers}'),
+                      _buildStatItem(l10n.time, _formatTime(_elapsedTime)),
+                      _buildStatItem(
+                          l10n.speed, '${_formatSpeed(_currentSpeed)} ${l10n.kilometersPerHour}'),
+                      _buildStatItem(l10n.calories, '$_calories'),
                     ],
                   ),
                   if (_isRunning) ...[
@@ -961,7 +1009,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            '配速: ${_formatPace(_averageSpeed)} /公里',
+                            '配速: ${_formatPace(_averageSpeed)} /${l10n.kilometers}',
                             style: const TextStyle(
                               color: AppColors.primary,
                               fontSize: 13,
@@ -977,166 +1025,47 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
             ),
           ),
 
-          // 底部控制面板 - 3D增强设计
+          // 底部控制按钮 - 3D增强样式
           Positioned(
-            bottom: MediaQuery.of(context).padding.bottom + 20,
+            bottom: 40,
             left: 20,
             right: 20,
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.95),
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(_is3DMode ? 0.2 : 0.1),
-                    blurRadius: _is3DMode ? 20 : 15,
-                    offset: Offset(0, _is3DMode ? -8 : -4),
+            child: Row(
+              children: [
+                // 开始按钮
+                if (!_isRunning)
+                  Expanded(
+                    child: _buildControlButton(
+                      l10n.startSimulatedRun,
+                      AppColors.primary,
+                      () => _startRunning(),
+                      Icons.play_arrow,
+                    ),
+                  ),
+
+                // 暂停/继续按钮
+                if (_isRunning) ...[
+                  Expanded(
+                    child: _buildControlButton(
+                      _isPaused ? l10n.continueText : l10n.pause,
+                      _isPaused ? AppColors.secondary : Colors.orange,
+                      () => _pauseRunning(),
+                      _isPaused ? Icons.play_arrow : Icons.pause,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+
+                  // 停止按钮
+                  Expanded(
+                    child: _buildControlButton(
+                      l10n.stop,
+                      Colors.red,
+                      () => _stopRunning(),
+                      Icons.stop,
+                    ),
                   ),
                 ],
-                border: _is3DMode
-                    ? Border.all(color: AppColors.primary.withOpacity(0.2), width: 1)
-                    : null,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  if (!_isRunning) ...[
-                    // 开始按钮 - 3D增强
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [AppColors.success, Color(0xFF4CAF50)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(25),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.success.withOpacity(0.4),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: ElevatedButton(
-                          onPressed: _startRunning,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 18),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(25),
-                            ),
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.play_arrow, size: 24),
-                              SizedBox(width: 8),
-                              Text('开始模拟跑步',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ] else ...[
-                    // 暂停/继续按钮
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: _isPaused
-                                ? [AppColors.success, const Color(0xFF4CAF50)]
-                                : [AppColors.warning, const Color(0xFFFFA726)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(25),
-                          boxShadow: [
-                            BoxShadow(
-                              color: (_isPaused ? AppColors.success : AppColors.warning)
-                                  .withOpacity(0.4),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: ElevatedButton(
-                          onPressed: _pauseRunning,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 18),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(25),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(_isPaused ? Icons.play_arrow : Icons.pause, size: 24),
-                              const SizedBox(width: 8),
-                              Text(
-                                _isPaused ? '继续' : '暂停',
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(width: 16),
-
-                    // 停止按钮
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [AppColors.error, Color(0xFFE57373)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(25),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.error.withOpacity(0.4),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: ElevatedButton(
-                          onPressed: _stopRunning,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 18),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(25),
-                            ),
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.stop, size: 24),
-                              SizedBox(width: 8),
-                              Text('结束',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+              ],
             ),
           ),
 
@@ -1202,6 +1131,31 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
                 ],
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildControlButton(String label, Color color, VoidCallback onPressed, IconData icon) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(25),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 24),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );

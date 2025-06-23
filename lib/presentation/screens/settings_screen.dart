@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../../core/services/language_service.dart';
 import '../../l10n/app_localizations.dart';
+import 'about_screen.dart';
 
 /// ⚙️ 设置页面
 class SettingsScreen extends StatefulWidget {
@@ -34,7 +35,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 20),
 
-          // 可以在这里添加更多设置选项
+          // 关于应用
           _buildAboutSection(context, l10n),
         ],
       ),
@@ -125,7 +126,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  '关于应用', // 这里暂时保持中文，因为没有在arb文件中定义
+                  l10n.aboutApp,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -136,15 +137,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const Divider(height: 1),
-          const ListTile(
-            title: Text('版本'),
-            subtitle: Text('1.0.0'),
-            trailing: Icon(Icons.arrow_forward_ios, size: 16),
-          ),
-          const ListTile(
-            title: Text('开发者'),
-            subtitle: Text('跑步追踪器团队'),
-            trailing: Icon(Icons.arrow_forward_ios, size: 16),
+          ListTile(
+            title: Text(l10n.aboutApp),
+            subtitle: Text(l10n.aboutSubtitle),
+            leading: const Icon(Icons.info),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AboutScreen(),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -178,7 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('语言切换失败: $e'),
+            content: Text(l10n.languageSwitchFailed(e.toString())),
             backgroundColor: AppColors.error,
           ),
         );
