@@ -254,7 +254,11 @@ router.post('/register', async (req, res, next) => {
           id: user.id,
           email: user.email,
           username: user.username,
-          isEmailVerified: user.isEmailVerified
+          avatar: user.avatar,
+          bio: user.bio,
+          isEmailVerified: user.isEmailVerified,
+          createdAt: user.createdAt.toISOString(),
+          updatedAt: user.updatedAt.toISOString()
         }
       }
     });

@@ -11,6 +11,9 @@ const app = express();
 // Railway 会自动设置 PORT 环境变量，我们需要使用它
 const PORT = process.env.PORT || 3000;
 
+// 信任代理设置（修复X-Forwarded-For错误）
+app.set('trust proxy', 1);
+
 // 安全中间件
 app.use(helmet());
 
@@ -34,7 +37,9 @@ const limiter = rateLimit({
   max: 100, // 每个IP最多100个请求
   message: {
     error: '请求过于频繁，请稍后再试'
-  }
+  },
+  standardHeaders: true, // 返回rate limit信息在 `RateLimit-*` headers
+  legacyHeaders: false, // 禁用 `X-RateLimit-*` headers
 });
 app.use(limiter);
 
