@@ -42,7 +42,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gettingLocation => 'Getting location...';
 
   @override
-  String get locationReady => 'Location ready';
+  String get locationReady => 'GPS location locked successfully';
 
   @override
   String get locationFailed => 'Location failed, using default location';
@@ -425,10 +425,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get caloriesBurned => 'Calories Burned';
 
   @override
-  String get simulatedDataNote => '📱 This is simulated data, actual use requires GPS enabled';
+  String get realDataNote => '📱 Using real GPS to track your running route';
 
   @override
-  String get startSimulatedRun => 'Start Simulated Run';
+  String get startRealRun => 'Start Running';
 
   @override
   String get continueText => 'Continue';

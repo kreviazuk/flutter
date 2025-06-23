@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
-import 'dart:math' as math;
 import '../theme/app_colors.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -40,12 +39,8 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
   StreamSubscription<Position>? _positionSubscription;
   bool _isLocationLoaded = false;
 
-  // 模拟跑步相关
-  bool _isSimulating = false;
-  Timer? _simulationTimer;
-  double _simulationAngle = 0;
-  double _simulationSpeed = 3.0;
-  int _simulationStep = 0;
+  // GPS实时追踪相关
+  StreamSubscription<Position>? _realTimePositionSubscription;
 
   // 地图和路线数据
   final Set<Marker> _markers = {};
@@ -226,8 +221,8 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
   @override
   void dispose() {
     _positionSubscription?.cancel();
+    _realTimePositionSubscription?.cancel();
     _timer?.cancel();
-    _simulationTimer?.cancel();
     _frameController.dispose();
     _3dController.dispose();
     super.dispose();
@@ -349,9 +344,9 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
       _currentPosition!.longitude,
     );
 
-    // 在3D模式下，根据移动方向动态调整bearing
-    if (_is3DMode && _isRunning) {
-      _targetBearing = _simulationAngle * 180 / math.pi;
+    // 在3D模式下，根据GPS heading动态调整bearing
+    if (_is3DMode && _isRunning && _currentPosition != null) {
+      _targetBearing = _currentPosition!.heading;
       // 平滑插值bearing变化
       _currentBearing = _currentBearing + (_targetBearing - _currentBearing) * 0.1;
     }
@@ -386,7 +381,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     });
   }
 
-  /// 开始跑步（模拟）
+  /// 开始跑步（真实GPS追踪）
   void _startRunning() {
     setState(() {
       _isRunning = true;
@@ -412,8 +407,8 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
       ),
     );
 
-    // 开始模拟位置追踪（更高频率）
-    _startSimulatedLocationTracking();
+    // 开始真实GPS位置追踪
+    _startRealTimeLocationTracking();
 
     // 开始计时器
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -429,61 +424,26 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     HapticFeedback.lightImpact();
   }
 
-  /// 开始模拟位置追踪（高频率更新）
-  void _startSimulatedLocationTracking() {
-    // 高帧率模式下更频繁更新位置
-    final updateInterval = _isHighFrameRate
-        ? const Duration(milliseconds: 500) // 2FPS位置更新
-        : const Duration(seconds: 1); // 1FPS位置更新
-
-    _simulationTimer = Timer.periodic(updateInterval, (timer) {
-      if (_isRunning && !_isPaused && _isSimulating) {
-        _generateNextSimulatedPosition();
-      }
-    });
-  }
-
-  /// 生成下一个模拟位置（优化3D效果）
-  void _generateNextSimulatedPosition() {
-    if (_currentPosition == null) return;
-
-    _simulationStep++;
-
-    // 模拟更真实的跑步路径
-    double distance = 8 + math.Random().nextDouble() * 12; // 8-20米每次更新
-
-    // 更自然的方向变化
-    if (_simulationStep % (5 + math.Random().nextInt(8)) == 0) {
-      _simulationAngle += (math.Random().nextDouble() - 0.5) * math.pi / 3; // 更小的转向角度
-    }
-
-    // 计算新位置
-    double latOffset = distance * math.cos(_simulationAngle) / 111000;
-    double lonOffset = distance *
-        math.sin(_simulationAngle) /
-        (111000 * math.cos(_currentPosition!.latitude * math.pi / 180));
-
-    double newLat = _currentPosition!.latitude + latOffset;
-    double newLon = _currentPosition!.longitude + lonOffset;
-
-    // 模拟更真实的速度变化
-    double simulatedSpeed =
-        2.5 + math.sin(_simulationStep * 0.1) * 1.5 + math.Random().nextDouble() * 0.5;
-
-    Position newPosition = Position(
-      latitude: newLat,
-      longitude: newLon,
-      timestamp: DateTime.now(),
-      accuracy: 2.0 + math.Random().nextDouble() * 1.0, // 2-3米精度
-      altitude: 50.0 + math.sin(_simulationStep * 0.05) * 5.0,
-      altitudeAccuracy: 2.0,
-      heading: _simulationAngle * 180 / math.pi,
-      headingAccuracy: 3.0,
-      speed: simulatedSpeed,
-      speedAccuracy: 0.3,
+  /// 开始真实GPS位置追踪
+  void _startRealTimeLocationTracking() {
+    const LocationSettings locationSettings = LocationSettings(
+      accuracy: LocationAccuracy.bestForNavigation,
+      distanceFilter: 2, // 最小移动距离2米才更新
     );
 
-    _updateRunningPosition(newPosition);
+    _realTimePositionSubscription = Geolocator.getPositionStream(
+      locationSettings: locationSettings,
+    ).listen(
+      (Position position) {
+        if (_isRunning && !_isPaused) {
+          _updateRunningPosition(position);
+        }
+      },
+      onError: (error) {
+        print('实时位置追踪错误: $error');
+        // 如果GPS追踪失败，继续使用当前位置
+      },
+    );
   }
 
   /// 暂停跑步
@@ -497,7 +457,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
 
     if (_isPaused) {
       _timer?.cancel();
-      _simulationTimer?.cancel();
+      _realTimePositionSubscription?.cancel();
     } else {
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (_isRunning && !_isPaused) {
@@ -507,7 +467,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
           });
         }
       });
-      _startSimulatedLocationTracking();
+      _startRealTimeLocationTracking();
     }
 
     HapticFeedback.lightImpact();
@@ -524,7 +484,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     _statusMessage = l10n.runningEnded;
 
     _timer?.cancel();
-    _simulationTimer?.cancel();
+    _realTimePositionSubscription?.cancel();
 
     // 添加结束标记
     if (_currentPosition != null) {
@@ -637,7 +597,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
                 l10n.caloriesBurned, '$_calories ${l10n.kcal}', Icons.local_fire_department),
             const SizedBox(height: 16),
             Text(
-              l10n.simulatedDataNote,
+              l10n.realDataNote,
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[600],
@@ -682,8 +642,6 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
       _currentSpeed = 0.0;
       _averageSpeed = 0.0;
       _calories = 0;
-      _simulationStep = 0;
-      _simulationAngle = 0;
       _currentBearing = 0.0;
       _targetBearing = 0.0;
       _routePoints.clear();
@@ -857,41 +815,40 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
                           style: const TextStyle(color: Colors.white, fontSize: 16),
                           textAlign: TextAlign.center,
                         ),
-                        if (_isSimulating)
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                _isHighFrameRate ? Icons.speed : Icons.refresh,
-                                color: Colors.white,
-                                size: 14,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _isHighFrameRate ? Icons.speed : Icons.refresh,
+                              color: Colors.white,
+                              size: 14,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${_currentFPS}FPS',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.8),
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${_currentFPS}FPS',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.8),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            ),
+                            const SizedBox(width: 12),
+                            Icon(
+                              _is3DMode ? Icons.view_in_ar : Icons.map,
+                              color: Colors.white,
+                              size: 14,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _is3DMode ? '3D' : '2D',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.8),
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
                               ),
-                              const SizedBox(width: 12),
-                              Icon(
-                                _is3DMode ? Icons.view_in_ar : Icons.map,
-                                color: Colors.white,
-                                size: 14,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                _is3DMode ? '3D' : '2D',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.8),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -1036,7 +993,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
                 if (!_isRunning)
                   Expanded(
                     child: _buildControlButton(
-                      l10n.startSimulatedRun,
+                      l10n.startRealRun,
                       AppColors.primary,
                       () => _startRunning(),
                       Icons.play_arrow,

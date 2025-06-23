@@ -164,7 +164,7 @@ abstract class AppLocalizations {
   /// No description provided for @locationReady.
   ///
   /// In en, this message translates to:
-  /// **'Location ready'**
+  /// **'GPS location locked successfully'**
   String get locationReady;
 
   /// No description provided for @locationFailed.
@@ -887,17 +887,17 @@ abstract class AppLocalizations {
   /// **'Calories Burned'**
   String get caloriesBurned;
 
-  /// No description provided for @simulatedDataNote.
+  /// No description provided for @realDataNote.
   ///
   /// In en, this message translates to:
-  /// **'📱 This is simulated data, actual use requires GPS enabled'**
-  String get simulatedDataNote;
+  /// **'📱 Using real GPS to track your running route'**
+  String get realDataNote;
 
-  /// No description provided for @startSimulatedRun.
+  /// No description provided for @startRealRun.
   ///
   /// In en, this message translates to:
-  /// **'Start Simulated Run'**
-  String get startSimulatedRun;
+  /// **'Start Running'**
+  String get startRealRun;
 
   /// No description provided for @continueText.
   ///

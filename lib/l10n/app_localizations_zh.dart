@@ -42,7 +42,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get gettingLocation => '正在获取位置...';
 
   @override
-  String get locationReady => '位置已就绪';
+  String get locationReady => 'GPS定位成功，位置已锁定';
 
   @override
   String get locationFailed => '位置获取失败，使用默认位置';
@@ -425,10 +425,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get caloriesBurned => '消耗卡路里';
 
   @override
-  String get simulatedDataNote => '📱 这是模拟数据，实际使用需要开启GPS';
+  String get realDataNote => '📱 使用真实GPS追踪您的跑步路线';
 
   @override
-  String get startSimulatedRun => '开始模拟跑步';
+  String get startRealRun => '开始跑步';
 
   @override
   String get continueText => '继续';
