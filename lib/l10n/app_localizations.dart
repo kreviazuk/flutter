@@ -785,6 +785,36 @@ abstract class AppLocalizations {
   /// **'Language switch failed: {error}'**
   String languageSwitchFailed(String error);
 
+  /// No description provided for @gpsSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'GPS Settings'**
+  String get gpsSettings;
+
+  /// No description provided for @simulateGps.
+  ///
+  /// In en, this message translates to:
+  /// **'Simulate GPS'**
+  String get simulateGps;
+
+  /// No description provided for @simulateGpsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable to use simulated GPS data for running tests'**
+  String get simulateGpsDescription;
+
+  /// No description provided for @realGps.
+  ///
+  /// In en, this message translates to:
+  /// **'Real GPS'**
+  String get realGps;
+
+  /// No description provided for @realGpsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use device\'s real GPS for location tracking'**
+  String get realGpsDescription;
+
   /// No description provided for @readyToRun.
   ///
   /// In en, this message translates to:
@@ -892,6 +922,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'📱 Using real GPS to track your running route'**
   String get realDataNote;
+
+  /// No description provided for @simulatedDataNote.
+  ///
+  /// In en, this message translates to:
+  /// **'📱 This is simulated GPS data for testing purposes'**
+  String get simulatedDataNote;
 
   /// No description provided for @startRealRun.
   ///

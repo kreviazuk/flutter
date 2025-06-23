@@ -4,8 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
+import 'dart:math' as math;
 import '../theme/app_colors.dart';
 import '../../l10n/app_localizations.dart';
+import '../../core/services/gps_settings_service.dart';
 
 /// 🏃‍♂️ 跑步追踪页面 - 高帧率3D模式
 class RunningScreenGMaps extends StatefulWidget {
@@ -39,8 +41,15 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
   StreamSubscription<Position>? _positionSubscription;
   bool _isLocationLoaded = false;
 
-  // GPS实时追踪相关
+  // GPS追踪相关
   StreamSubscription<Position>? _realTimePositionSubscription;
+  bool _isSimulateGpsEnabled = false;
+
+  // 模拟GPS相关
+  Timer? _simulationTimer;
+  double _simulationAngle = 0;
+  double _simulationSpeed = 3.0;
+  int _simulationStep = 0;
 
   // 地图和路线数据
   final Set<Marker> _markers = {};
@@ -81,13 +90,22 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     // 设置高刷新率模式
     _enableHighRefreshRate();
 
+    // 加载GPS设置并初始化位置
+    _initializeGpsAndLocation();
+  }
+
+  /// 初始化GPS设置和位置
+  Future<void> _initializeGpsAndLocation() async {
+    // 加载GPS模拟设置
+    _isSimulateGpsEnabled = await GpsSettingsService.getSimulateGpsEnabled();
+
     // 优先使用传入的GPS位置，如果没有则使用默认位置
     if (widget.initialPosition != null) {
       // 使用真实的GPS位置
       _currentPosition = widget.initialPosition;
       setState(() {
         _isLocationLoaded = true;
-        _statusMessage = 'GPS就绪，当前位置已锁定！ 🎮 高帧率3D模式';
+        _statusMessage = 'GPS ready, current location locked! 🎮 High Frame Rate 3D Mode';
       });
     } else {
       // 如果没有GPS位置，尝试获取当前位置
@@ -106,7 +124,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
   Future<void> _getCurrentLocation() async {
     try {
       setState(() {
-        _statusMessage = '正在获取GPS位置...';
+        _statusMessage = 'Getting GPS location...';
       });
 
       // 异步更新国际化文本
@@ -123,7 +141,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         setState(() {
-          _statusMessage = 'GPS服务未开启，使用默认位置';
+          _statusMessage = 'GPS service not enabled, using default location';
           _currentPosition = Position(
             latitude: _defaultLocation.latitude,
             longitude: _defaultLocation.longitude,
@@ -160,7 +178,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
       setState(() {
         _currentPosition = position;
         _isLocationLoaded = true;
-        _statusMessage = 'GPS就绪，当前位置已锁定！ 🎮 高帧率3D模式';
+        _statusMessage = 'GPS ready, current location locked! 🎮 High Frame Rate 3D Mode';
       });
 
       // 等待UI构建完成后更新地图
@@ -172,7 +190,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     } catch (e) {
       print('获取位置失败: $e');
       setState(() {
-        _statusMessage = '位置获取失败，使用默认位置';
+        _statusMessage = 'Location failed, using default location';
         _currentPosition = Position(
           latitude: _defaultLocation.latitude,
           longitude: _defaultLocation.longitude,
@@ -211,7 +229,8 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     if (mounted) {
       final l10n = AppLocalizations.of(context)!;
       setState(() {
-        if (_statusMessage.contains('GPS就绪，当前位置已锁定！ 🎮 高帧率3D模式')) {
+        if (_statusMessage
+            .contains('GPS ready, current location locked! 🎮 High Frame Rate 3D Mode')) {
           _statusMessage = '${l10n.gpsReady} 🎮 ${l10n.highFrameRate3DMode}';
         }
       });
@@ -223,6 +242,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     _positionSubscription?.cancel();
     _realTimePositionSubscription?.cancel();
     _timer?.cancel();
+    _simulationTimer?.cancel();
     _frameController.dispose();
     _3dController.dispose();
     super.dispose();
@@ -255,10 +275,8 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
       final l10n = AppLocalizations.of(context)!;
       final modeText = _is3DMode ? l10n.threeDMode : l10n.twoDMode;
       _statusMessage = _isRunning
-          ? '${l10n.runningMode}'.replaceAll('{fps}', '$_currentFPS').replaceAll('{mode}', modeText)
-          : '${l10n.gpsReadyMode}'
-              .replaceAll('{fps}', '$_currentFPS')
-              .replaceAll('{mode}', modeText);
+          ? '${l10n.running}... (${_currentFPS}FPS ${modeText}${l10n.mode})'
+          : '${l10n.gpsReady} 🎮 ${_currentFPS}FPS ${modeText}${l10n.mode}';
     });
 
     // 显示帧率切换提示
@@ -274,10 +292,8 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
       final l10n = AppLocalizations.of(context)!;
       final modeText = _is3DMode ? l10n.threeDMode : l10n.twoDMode;
       _statusMessage = _isRunning
-          ? '${l10n.runningMode}'.replaceAll('{fps}', '$_currentFPS').replaceAll('{mode}', modeText)
-          : '${l10n.gpsReadyMode}'
-              .replaceAll('{fps}', '$_currentFPS')
-              .replaceAll('{mode}', modeText);
+          ? '${l10n.running}... (${_currentFPS}FPS ${modeText}${l10n.mode})'
+          : '${l10n.gpsReady} 🎮 ${_currentFPS}FPS ${modeText}${l10n.mode}';
     });
 
     // 平滑切换3D视角
@@ -290,6 +306,8 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
 
   /// 显示帧率切换提示
   void _showFrameRateToast() {
+    final l10n = AppLocalizations.of(context)!;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -299,8 +317,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
               color: Colors.white,
             ),
             const SizedBox(width: 8),
-            Text('${AppLocalizations.of(context)!.switchToFpsMode}'
-                .replaceAll('{fps}', '$_currentFPS')),
+            Text('🎮 ${l10n.switchToFpsMode}'.replaceAll('{fps}', '${_currentFPS}')),
           ],
         ),
         backgroundColor: AppColors.primary,
@@ -312,6 +329,9 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
 
   /// 显示3D模式切换提示
   void _show3DModeToast() {
+    final l10n = AppLocalizations.of(context)!;
+    final modeText = _is3DMode ? l10n.threeDMode : l10n.twoDMode;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -321,11 +341,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
               color: Colors.white,
             ),
             const SizedBox(width: 8),
-            Text('${AppLocalizations.of(context)!.switchToViewMode}'.replaceAll(
-                '{mode}',
-                _is3DMode
-                    ? AppLocalizations.of(context)!.threeDMode
-                    : AppLocalizations.of(context)!.twoDMode)),
+            Text('🌐 ${l10n.switchToViewMode}'.replaceAll('{mode}', modeText)),
           ],
         ),
         backgroundColor: AppColors.secondary,
@@ -344,9 +360,13 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
       _currentPosition!.longitude,
     );
 
-    // 在3D模式下，根据GPS heading动态调整bearing
+    // 在3D模式下，根据移动方向动态调整bearing
     if (_is3DMode && _isRunning && _currentPosition != null) {
-      _targetBearing = _currentPosition!.heading;
+      if (_isSimulateGpsEnabled) {
+        _targetBearing = _simulationAngle * 180 / math.pi;
+      } else {
+        _targetBearing = _currentPosition!.heading;
+      }
       // 平滑插值bearing变化
       _currentBearing = _currentBearing + (_targetBearing - _currentBearing) * 0.1;
     }
@@ -407,8 +427,12 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
       ),
     );
 
-    // 开始真实GPS位置追踪
-    _startRealTimeLocationTracking();
+    // 根据设置启动对应的位置追踪
+    if (_isSimulateGpsEnabled) {
+      _startSimulatedLocationTracking();
+    } else {
+      _startRealTimeLocationTracking();
+    }
 
     // 开始计时器
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -446,6 +470,63 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     );
   }
 
+  /// 开始模拟GPS位置追踪
+  void _startSimulatedLocationTracking() {
+    // 高帧率模式下更频繁更新位置
+    final updateInterval = _isHighFrameRate
+        ? const Duration(milliseconds: 500) // 2FPS位置更新
+        : const Duration(seconds: 1); // 1FPS位置更新
+
+    _simulationTimer = Timer.periodic(updateInterval, (timer) {
+      if (_isRunning && !_isPaused) {
+        _generateNextSimulatedPosition();
+      }
+    });
+  }
+
+  /// 生成下一个模拟位置
+  void _generateNextSimulatedPosition() {
+    if (_currentPosition == null) return;
+
+    _simulationStep++;
+
+    // 模拟更真实的跑步路径
+    double distance = 8 + math.Random().nextDouble() * 12; // 8-20米每次更新
+
+    // 更自然的方向变化
+    if (_simulationStep % (5 + math.Random().nextInt(8)) == 0) {
+      _simulationAngle += (math.Random().nextDouble() - 0.5) * math.pi / 3; // 更小的转向角度
+    }
+
+    // 计算新位置
+    double latOffset = distance * math.cos(_simulationAngle) / 111000;
+    double lonOffset = distance *
+        math.sin(_simulationAngle) /
+        (111000 * math.cos(_currentPosition!.latitude * math.pi / 180));
+
+    double newLat = _currentPosition!.latitude + latOffset;
+    double newLon = _currentPosition!.longitude + lonOffset;
+
+    // 模拟更真实的速度变化
+    double simulatedSpeed =
+        2.5 + math.sin(_simulationStep * 0.1) * 1.5 + math.Random().nextDouble() * 0.5;
+
+    Position newPosition = Position(
+      latitude: newLat,
+      longitude: newLon,
+      timestamp: DateTime.now(),
+      accuracy: 2.0 + math.Random().nextDouble() * 1.0, // 2-3米精度
+      altitude: 50.0 + math.sin(_simulationStep * 0.05) * 5.0,
+      altitudeAccuracy: 2.0,
+      heading: _simulationAngle * 180 / math.pi,
+      headingAccuracy: 3.0,
+      speed: simulatedSpeed,
+      speedAccuracy: 0.3,
+    );
+
+    _updateRunningPosition(newPosition);
+  }
+
   /// 暂停跑步
   void _pauseRunning() {
     setState(() {
@@ -458,6 +539,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     if (_isPaused) {
       _timer?.cancel();
       _realTimePositionSubscription?.cancel();
+      _simulationTimer?.cancel();
     } else {
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (_isRunning && !_isPaused) {
@@ -467,7 +549,13 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
           });
         }
       });
-      _startRealTimeLocationTracking();
+
+      // 根据设置恢复对应的位置追踪
+      if (_isSimulateGpsEnabled) {
+        _startSimulatedLocationTracking();
+      } else {
+        _startRealTimeLocationTracking();
+      }
     }
 
     HapticFeedback.lightImpact();
@@ -485,6 +573,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
 
     _timer?.cancel();
     _realTimePositionSubscription?.cancel();
+    _simulationTimer?.cancel();
 
     // 添加结束标记
     if (_currentPosition != null) {
@@ -597,7 +686,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
                 l10n.caloriesBurned, '$_calories ${l10n.kcal}', Icons.local_fire_department),
             const SizedBox(height: 16),
             Text(
-              l10n.realDataNote,
+              _isSimulateGpsEnabled ? l10n.simulatedDataNote : l10n.realDataNote,
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[600],
@@ -642,6 +731,8 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
       _currentSpeed = 0.0;
       _averageSpeed = 0.0;
       _calories = 0;
+      _simulationStep = 0;
+      _simulationAngle = 0;
       _currentBearing = 0.0;
       _targetBearing = 0.0;
       _routePoints.clear();
@@ -650,9 +741,8 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
       // 清除所有标记，重新添加当前位置
       _markers.clear();
       final l10n = AppLocalizations.of(context)!;
-      _statusMessage = '${l10n.gpsReadyMode}'
-          .replaceAll('{fps}', '$_currentFPS')
-          .replaceAll('{mode}', _is3DMode ? l10n.threeDMode : l10n.twoDMode);
+      final modeText = _is3DMode ? l10n.threeDMode : l10n.twoDMode;
+      _statusMessage = '${l10n.gpsReady} 🎮 ${_currentFPS}FPS ${modeText}${l10n.mode}';
     });
 
     // 重置到初始位置
@@ -728,19 +818,21 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
   /// 更新状态消息
   void _updateStatusMessage(AppLocalizations l10n) {
     final modeText = _is3DMode ? l10n.threeDMode : l10n.twoDMode;
-    if (_isRunning) {
-      if (_isPaused) {
-        _statusMessage =
-            '${l10n.pausedMode}'.replaceAll('{fps}', '$_currentFPS').replaceAll('{mode}', modeText);
+
+    setState(() {
+      if (_isRunning) {
+        if (_isPaused) {
+          // 暂停状态 - 使用国际化文本
+          _statusMessage = '${l10n.pause} (${_currentFPS}FPS ${modeText}${l10n.mode})';
+        } else {
+          // 跑步状态 - 使用国际化文本
+          _statusMessage = '${l10n.running}... (${_currentFPS}FPS ${modeText}${l10n.mode})';
+        }
       } else {
-        _statusMessage = '${l10n.runningMode}'
-            .replaceAll('{fps}', '$_currentFPS')
-            .replaceAll('{mode}', modeText);
+        // GPS就绪状态 - 使用国际化文本
+        _statusMessage = '${l10n.gpsReady} 🎮 ${_currentFPS}FPS ${modeText}${l10n.mode}';
       }
-    } else {
-      _statusMessage =
-          '${l10n.gpsReadyMode}'.replaceAll('{fps}', '$_currentFPS').replaceAll('{mode}', modeText);
-    }
+    });
   }
 
   @override
@@ -993,7 +1085,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
                 if (!_isRunning)
                   Expanded(
                     child: _buildControlButton(
-                      l10n.startRealRun,
+                      _isSimulateGpsEnabled ? l10n.startRunning : l10n.startRealRun,
                       AppColors.primary,
                       () => _startRunning(),
                       Icons.play_arrow,
