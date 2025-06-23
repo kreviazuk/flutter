@@ -82,20 +82,23 @@ class AppConfig {
 
   /// 打印当前配置信息
   static void printConfig() {
+    // 总是打印基本信息，即使在生产环境
+    print('🔧 ==================== App Config ====================');
+    print('Environment: $environmentName');
+    print('API Base URL: $apiBaseUrl');
+    print('Platform: ${kIsWeb ? 'Web' : 'Mobile'}');
+    print('Debug Mode: $kDebugMode');
+    print(
+        '🌍 Using ${isProduction ? 'PRODUCTION' : isDevelopment ? 'DEVELOPMENT' : 'TEST'} Environment');
+    print('=====================================================');
+
+    // 详细信息仅在调试模式下显示
     if (kDebugMode) {
-      print('🔧 ==================== App Config ====================');
-      print('Environment: $environmentName');
-      print('API Base URL: $apiBaseUrl');
       print('Proxy Enabled: $isProxyEnabled');
       if (isProxyEnabled) {
         print('Proxy: $proxyHost:$proxyPort');
       }
-      print('Platform: ${kIsWeb ? 'Web' : 'Mobile'}');
-      print('Debug Mode: $kDebugMode');
-      print(
-          '🌍 Using ${isProduction ? 'PRODUCTION' : isDevelopment ? 'DEVELOPMENT' : 'TEST'} Environment');
       print('🚂 Railway API: ${apiBaseUrl.contains('railway') ? 'YES' : 'NO'}');
-      print('=====================================================');
     }
   }
 
