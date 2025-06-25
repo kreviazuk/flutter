@@ -51,15 +51,62 @@ class RouteImageService {
   static Future<bool> _checkPermissions(BuildContext context) async {
     if (Platform.isAndroid) {
       try {
-        // 检查当前权限状态
+        // 首次检查权限状态
+        bool hasPermission = await _hasStoragePermission();
+
+        if (hasPermission) {
+          print('存储权限已授权');
+          return true;
+        }
+
+        print('存储权限未授权，开始申请流程');
+
+        // 显示权限申请对话框
+        final shouldRequest = await _showPermissionDialog(context);
+        if (!shouldRequest) {
+          print('用户取消权限申请');
+          return false;
+        }
+
+        // 尝试申请权限
+        hasPermission = await _requestStoragePermission();
+
+        if (hasPermission) {
+          print('存储权限申请成功');
+          return true;
+        }
+
+        // 如果申请失败，检查具体原因
+        final isPermanentlyDenied = await _isPermissionPermanentlyDenied();
+
+        if (isPermanentlyDenied) {
+          print('存储权限被永久拒绝，提示前往设置');
+          final shouldGoToSettings = await _showSettingsDialog(context);
+
+          if (shouldGoToSettings) {
+            await openAppSettings();
+            // 给用户时间去设置后再次检查
+            await Future.delayed(const Duration(seconds: 2));
+            return await _hasStoragePermission();
+          }
+        } else {
+          print('存储权限被临时拒绝');
+          // 提供降级保存方案
+          return await _showFallbackSaveDialog(context);
+        }
+
+        return false;
+      } catch (e) {
+        print('权限检查失败: $e');
+        // 权限检查失败时，尝试降级保存
+        return await _showFallbackSaveDialog(context);
+      }
+    } else if (Platform.isIOS) {
+      // iOS处理
+      try {
         final photosStatus = await Permission.photos.status;
-        final storageStatus = await Permission.storage.status;
 
-        print('Photos permission status: $photosStatus');
-        print('Storage permission status: $storageStatus');
-
-        // 如果已有权限，直接返回
-        if (photosStatus.isGranted || storageStatus.isGranted) {
+        if (photosStatus.isGranted) {
           return true;
         }
 
@@ -69,30 +116,137 @@ class RouteImageService {
           return false;
         }
 
-        // 申请权限
         final photosResult = await Permission.photos.request();
+
+        if (photosResult.isGranted) {
+          return true;
+        } else if (photosResult.isPermanentlyDenied) {
+          final shouldGoToSettings = await _showSettingsDialog(context);
+          if (shouldGoToSettings) {
+            await openAppSettings();
+          }
+        }
+
+        // iOS降级方案：保存到应用沙盒
+        return await _showFallbackSaveDialog(context);
+      } catch (e) {
+        print('iOS权限检查失败: $e');
+        return await _showFallbackSaveDialog(context);
+      }
+    }
+
+    // 其他平台默认允许
+    return true;
+  }
+
+  /// 检查是否有存储权限
+  static Future<bool> _hasStoragePermission() async {
+    if (Platform.isAndroid) {
+      // Android 检查多种权限
+      final photosStatus = await Permission.photos.status;
+      final storageStatus = await Permission.storage.status;
+
+      print('Photos permission: $photosStatus');
+      print('Storage permission: $storageStatus');
+
+      return photosStatus.isGranted || storageStatus.isGranted;
+    } else if (Platform.isIOS) {
+      final photosStatus = await Permission.photos.status;
+      return photosStatus.isGranted;
+    }
+
+    return true;
+  }
+
+  /// 申请存储权限
+  static Future<bool> _requestStoragePermission() async {
+    try {
+      if (Platform.isAndroid) {
+        // Android: 尝试多种权限策略
+
+        // 策略1: 先尝试photos权限（Android 13+推荐）
+        final photosResult = await Permission.photos.request();
+        print('Photos permission request result: $photosResult');
+
         if (photosResult.isGranted) {
           return true;
         }
 
+        // 策略2: 尝试传统存储权限
         final storageResult = await Permission.storage.request();
+        print('Storage permission request result: $storageResult');
+
         if (storageResult.isGranted) {
           return true;
         }
 
-        // 如果权限被永久拒绝，提示用户前往设置
-        if (photosResult.isPermanentlyDenied || storageResult.isPermanentlyDenied) {
-          await _showSettingsDialog(context);
-        }
+        // 策略3: 尝试外部存储管理权限（Android 11+）
+        try {
+          final manageStorageResult = await Permission.manageExternalStorage.request();
+          print('ManageExternalStorage permission request result: $manageStorageResult');
 
-        return false;
-      } catch (e) {
-        print('权限检查失败: $e');
-        return false;
+          return manageStorageResult.isGranted;
+        } catch (e) {
+          print('ManageExternalStorage权限不可用: $e');
+          return false;
+        }
+      } else if (Platform.isIOS) {
+        final photosResult = await Permission.photos.request();
+        return photosResult.isGranted;
       }
+
+      return true;
+    } catch (e) {
+      print('权限申请失败: $e');
+      return false;
     }
-    // iOS 默认允许
-    return true;
+  }
+
+  /// 检查权限是否被永久拒绝
+  static Future<bool> _isPermissionPermanentlyDenied() async {
+    if (Platform.isAndroid) {
+      final photosStatus = await Permission.photos.status;
+      final storageStatus = await Permission.storage.status;
+
+      return photosStatus.isPermanentlyDenied || storageStatus.isPermanentlyDenied;
+    } else if (Platform.isIOS) {
+      final photosStatus = await Permission.photos.status;
+      return photosStatus.isPermanentlyDenied;
+    }
+
+    return false;
+  }
+
+  /// 显示降级保存对话框
+  static Future<bool> _showFallbackSaveDialog(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.info, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('无法获取存储权限'),
+          ],
+        ),
+        content: const Text(
+          '无法获取外部存储权限，但可以将图片保存到应用目录。\n\n'
+          '您可以通过文件管理器访问应用数据目录查看图片。\n\n'
+          '是否继续保存到应用目录？',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('保存到应用目录'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 
   /// 显示权限申请对话框
@@ -128,8 +282,8 @@ class RouteImageService {
   }
 
   /// 显示设置对话框
-  static Future<void> _showSettingsDialog(BuildContext context) async {
-    await showDialog(
+  static Future<bool> _showSettingsDialog(BuildContext context) async {
+    final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Row(
@@ -145,19 +299,17 @@ class RouteImageService {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(context).pop(false),
             child: const Text('取消'),
           ),
           ElevatedButton(
-            onPressed: () async {
-              Navigator.of(context).pop();
-              await openAppSettings();
-            },
+            onPressed: () => Navigator.of(context).pop(true),
             child: const Text('前往设置'),
           ),
         ],
       ),
     );
+    return result ?? false;
   }
 
   /// 生成路径图片

@@ -699,26 +699,11 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
         actions: [
           TextButton.icon(
             onPressed: () async {
-              // 显示保存中提示
-              Navigator.of(context).pop();
-              _showSavingDialog();
-
-              // 生成并保存路径图片
-              final savedPath = await RouteImageService.generateAndSaveRouteImage(
-                context: context,
-                routePoints: _routePoints,
-                totalDistance: _totalDistance,
-                elapsedTime: _elapsedTime,
-                averageSpeed: _averageSpeed,
-                calories: _calories,
-                isSimulated: _isSimulateGpsEnabled,
-              );
-
-              // 关闭保存中对话框
+              // 先关闭跑步总结对话框
               Navigator.of(context).pop();
 
-              // 显示保存结果
-              _showSaveResult(savedPath);
+              // 保存路径图片
+              await _saveRouteImage();
 
               // 重置跑步数据
               _resetRunning();
@@ -903,6 +888,44 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
         _statusMessage = '${l10n.gpsReady} 🎮 ${_currentFPS}FPS ${modeText}${l10n.mode}';
       }
     });
+  }
+
+  /// 保存路径图片
+  Future<void> _saveRouteImage() async {
+    final l10n = AppLocalizations.of(context)!;
+
+    try {
+      // 显示保存中提示
+      _showSavingDialog();
+
+      // 生成并保存路径图片
+      final savedPath = await RouteImageService.generateAndSaveRouteImage(
+        context: context,
+        routePoints: _routePoints,
+        totalDistance: _totalDistance,
+        elapsedTime: _elapsedTime,
+        averageSpeed: _averageSpeed,
+        calories: _calories,
+        isSimulated: _isSimulateGpsEnabled,
+      );
+
+      // 关闭保存中对话框
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+
+      // 显示保存结果
+      _showSaveResult(savedPath);
+    } catch (e) {
+      // 关闭保存中对话框
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+
+      // 显示错误结果
+      print('保存路径图片失败: $e');
+      _showSaveResult(null);
+    }
   }
 
   @override
