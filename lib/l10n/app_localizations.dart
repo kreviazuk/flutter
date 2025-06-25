@@ -1006,6 +1006,174 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'🌐 Switch to {mode} view'**
   String switchToViewMode(String mode);
+
+  /// No description provided for @saveRouteImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Route Image'**
+  String get saveRouteImage;
+
+  /// No description provided for @savingRouteImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Generating and saving route image...'**
+  String get savingRouteImage;
+
+  /// No description provided for @saveSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'✅ Save Successful'**
+  String get saveSuccess;
+
+  /// No description provided for @saveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'❌ Save Failed'**
+  String get saveFailed;
+
+  /// No description provided for @routeImageSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Running route image saved to:\n{path}'**
+  String routeImageSaved(String path);
+
+  /// No description provided for @saveImageFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save route image, please check storage permissions.'**
+  String get saveImageFailed;
+
+  /// No description provided for @permissionManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission Management'**
+  String get permissionManagement;
+
+  /// No description provided for @permissionsRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Permissions Required'**
+  String get permissionsRequired;
+
+  /// No description provided for @somePermissionsMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Some permissions are not granted, which may affect app functionality'**
+  String get somePermissionsMissing;
+
+  /// No description provided for @locationPermissionMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Location permission not granted'**
+  String get locationPermissionMissing;
+
+  /// No description provided for @storagePermissionMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage permission not granted'**
+  String get storagePermissionMissing;
+
+  /// No description provided for @notificationPermissionMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification permission not granted'**
+  String get notificationPermissionMissing;
+
+  /// No description provided for @grantAllPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Grant All Permissions'**
+  String get grantAllPermissions;
+
+  /// No description provided for @checkPermissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Check Permissions'**
+  String get checkPermissions;
+
+  /// No description provided for @permissionLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Location Permission'**
+  String get permissionLocation;
+
+  /// No description provided for @permissionStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage Permission'**
+  String get permissionStorage;
+
+  /// No description provided for @permissionNotification.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification Permission'**
+  String get permissionNotification;
+
+  /// No description provided for @permissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get permissionRequired;
+
+  /// No description provided for @permissionOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional'**
+  String get permissionOptional;
+
+  /// No description provided for @permissionGranted.
+  ///
+  /// In en, this message translates to:
+  /// **'Granted'**
+  String get permissionGranted;
+
+  /// No description provided for @permissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Denied'**
+  String get permissionDenied;
+
+  /// No description provided for @openSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get openSettings;
+
+  /// No description provided for @permissionLocationDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Used for tracking running routes and real-time location'**
+  String get permissionLocationDesc;
+
+  /// No description provided for @permissionStorageDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Used for saving running data and route images'**
+  String get permissionStorageDesc;
+
+  /// No description provided for @permissionNotificationDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Used for receiving running reminders and app notifications'**
+  String get permissionNotificationDesc;
+
+  /// No description provided for @allPermissionsGranted.
+  ///
+  /// In en, this message translates to:
+  /// **'All permissions granted'**
+  String get allPermissionsGranted;
+
+  /// No description provided for @permissionsUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission status updated'**
+  String get permissionsUpdated;
+
+  /// No description provided for @skipForNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip for now'**
+  String get skipForNow;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

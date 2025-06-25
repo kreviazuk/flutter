@@ -487,4 +487,90 @@ class AppLocalizationsEn extends AppLocalizations {
   String switchToViewMode(String mode) {
     return '🌐 Switch to $mode view';
   }
+
+  @override
+  String get saveRouteImage => 'Save Route Image';
+
+  @override
+  String get savingRouteImage => 'Generating and saving route image...';
+
+  @override
+  String get saveSuccess => '✅ Save Successful';
+
+  @override
+  String get saveFailed => '❌ Save Failed';
+
+  @override
+  String routeImageSaved(String path) {
+    return 'Running route image saved to:\n$path';
+  }
+
+  @override
+  String get saveImageFailed => 'Failed to save route image, please check storage permissions.';
+
+  @override
+  String get permissionManagement => 'Permission Management';
+
+  @override
+  String get permissionsRequired => 'Permissions Required';
+
+  @override
+  String get somePermissionsMissing => 'Some permissions are not granted, which may affect app functionality';
+
+  @override
+  String get locationPermissionMissing => 'Location permission not granted';
+
+  @override
+  String get storagePermissionMissing => 'Storage permission not granted';
+
+  @override
+  String get notificationPermissionMissing => 'Notification permission not granted';
+
+  @override
+  String get grantAllPermissions => 'Grant All Permissions';
+
+  @override
+  String get checkPermissions => 'Check Permissions';
+
+  @override
+  String get permissionLocation => 'Location Permission';
+
+  @override
+  String get permissionStorage => 'Storage Permission';
+
+  @override
+  String get permissionNotification => 'Notification Permission';
+
+  @override
+  String get permissionRequired => 'Required';
+
+  @override
+  String get permissionOptional => 'Optional';
+
+  @override
+  String get permissionGranted => 'Granted';
+
+  @override
+  String get permissionDenied => 'Denied';
+
+  @override
+  String get openSettings => 'Open Settings';
+
+  @override
+  String get permissionLocationDesc => 'Used for tracking running routes and real-time location';
+
+  @override
+  String get permissionStorageDesc => 'Used for saving running data and route images';
+
+  @override
+  String get permissionNotificationDesc => 'Used for receiving running reminders and app notifications';
+
+  @override
+  String get allPermissionsGranted => 'All permissions granted';
+
+  @override
+  String get permissionsUpdated => 'Permission status updated';
+
+  @override
+  String get skipForNow => 'Skip for now';
 }

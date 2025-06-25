@@ -8,6 +8,7 @@ import 'dart:math' as math;
 import '../theme/app_colors.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/services/gps_settings_service.dart';
+import '../../core/services/route_image_service.dart';
 
 /// 🏃‍♂️ 跑步追踪页面 - 高帧率3D模式
 class RunningScreenGMaps extends StatefulWidget {
@@ -696,11 +697,80 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
           ],
         ),
         actions: [
+          TextButton.icon(
+            onPressed: () async {
+              // 显示保存中提示
+              Navigator.of(context).pop();
+              _showSavingDialog();
+
+              // 生成并保存路径图片
+              final savedPath = await RouteImageService.generateAndSaveRouteImage(
+                context: context,
+                routePoints: _routePoints,
+                totalDistance: _totalDistance,
+                elapsedTime: _elapsedTime,
+                averageSpeed: _averageSpeed,
+                calories: _calories,
+                isSimulated: _isSimulateGpsEnabled,
+              );
+
+              // 关闭保存中对话框
+              Navigator.of(context).pop();
+
+              // 显示保存结果
+              _showSaveResult(savedPath);
+
+              // 重置跑步数据
+              _resetRunning();
+            },
+            icon: const Icon(Icons.save_alt),
+            label: Text(l10n.saveRouteImage),
+          ),
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
               _resetRunning();
             },
+            child: Text(l10n.close),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 显示保存中对话框
+  void _showSavingDialog() {
+    final l10n = AppLocalizations.of(context)!;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: 20),
+            Expanded(child: Text(l10n.savingRouteImage)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 显示保存结果
+  void _showSaveResult(String? savedPath) {
+    final l10n = AppLocalizations.of(context)!;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(savedPath != null ? l10n.saveSuccess : l10n.saveFailed),
+        content: Text(
+          savedPath != null ? 'Running route image saved to:\n$savedPath' : l10n.saveImageFailed,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
             child: Text(l10n.close),
           ),
         ],

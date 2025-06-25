@@ -240,5 +240,41 @@
         "type": "String"
       }
     }
-  }
+  },
+  "saveRouteImage": "Save Route Image",
+  "savingRouteImage": "Generating and saving route image...",
+  "saveSuccess": "✅ Save Successful",
+  "saveFailed": "❌ Save Failed",
+  "routeImageSaved": "Running route image saved to:\n{path}",
+  "@routeImageSaved": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "saveImageFailed": "Failed to save route image, please check storage permissions.",
+  
+  "permissionManagement": "Permission Management",
+  "permissionsRequired": "Permissions Required",
+  "somePermissionsMissing": "Some permissions are not granted, which may affect app functionality",
+  "locationPermissionMissing": "Location permission not granted",
+  "storagePermissionMissing": "Storage permission not granted", 
+  "notificationPermissionMissing": "Notification permission not granted",
+  "grantAllPermissions": "Grant All Permissions",
+  "checkPermissions": "Check Permissions",
+  "permissionLocation": "Location Permission",
+  "permissionStorage": "Storage Permission", 
+  "permissionNotification": "Notification Permission",
+  "permissionRequired": "Required",
+  "permissionOptional": "Optional",
+  "permissionGranted": "Granted",
+  "permissionDenied": "Denied",
+  "openSettings": "Open Settings",
+  "permissionLocationDesc": "Used for tracking running routes and real-time location",
+  "permissionStorageDesc": "Used for saving running data and route images",
+  "permissionNotificationDesc": "Used for receiving running reminders and app notifications",
+  "allPermissionsGranted": "All permissions granted",
+  "permissionsUpdated": "Permission status updated",
+  "skipForNow": "Skip for now"
 } 

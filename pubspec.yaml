@@ -56,8 +56,9 @@ dependencies:
   # 网络请求
   http: ^1.1.0
 
-  # 图片选择
+  # 图片选择和处理
   image_picker: ^1.0.7
+  image: ^4.1.7
 
   # 实用工具
   intl: ^0.20.2

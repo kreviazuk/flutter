@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:convert';
 import '../theme/app_colors.dart';
-import '../widgets/permission_dialog.dart';
-import '../../core/services/permission_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../data/models/user.dart';
 import '../../l10n/app_localizations.dart';
@@ -21,8 +19,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool _hasPermissions = false;
-  bool _isCheckingPermissions = true;
   Position? _currentPosition;
   bool _isGettingLocation = false;
   String _locationStatus = '';
@@ -40,11 +36,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// 初始化应用
   Future<void> _initializeApp() async {
-    // 并行检查认证状态和权限
-    await Future.wait([
-      _checkAuthStatus(),
-      _checkPermissions(),
-    ]);
+    await _checkAuthStatus();
+    // 启动时开始获取位置
+    _startGettingLocation();
   }
 
   /// 检查用户认证状态
@@ -80,19 +74,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<void> _checkPermissions() async {
-    final hasPermissions = await PermissionService.hasAllRequiredPermissions();
-    setState(() {
-      _hasPermissions = hasPermissions;
-      _isCheckingPermissions = false;
-    });
-
-    // 如果权限已授权，立即开始获取位置
-    if (hasPermissions) {
-      _startGettingLocation();
-    }
-  }
-
   Future<void> _startGettingLocation() async {
     final l10n = AppLocalizations.of(context)!;
 
@@ -107,6 +88,27 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!serviceEnabled) {
         setState(() {
           _locationStatus = l10n.gpsNotEnabled;
+          _isGettingLocation = false;
+        });
+        return;
+      }
+
+      // 检查位置权限
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() {
+            _locationStatus = l10n.locationFailed;
+            _isGettingLocation = false;
+          });
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        setState(() {
+          _locationStatus = l10n.locationFailed;
           _isGettingLocation = false;
         });
         return;
@@ -127,19 +129,6 @@ class _HomeScreenState extends State<HomeScreen> {
         _locationStatus = l10n.locationFailed;
         _isGettingLocation = false;
       });
-    }
-  }
-
-  Future<void> _showPermissionDialog() async {
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const PermissionDialog(),
-    );
-
-    if (result == true) {
-      // 权限授权成功，重新检查权限状态
-      await _checkPermissions();
     }
   }
 
@@ -282,12 +271,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    if (!_hasPermissions) {
-      await _showPermissionDialog();
-      return;
-    }
-
-    // 权限已授权，开始倒计时，并传递位置信息
+    // 直接开始跑步，权限检查会在需要时进行
     if (mounted) {
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -303,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    if (_isCheckingPermissions || _isCheckingAuth) {
+    if (_isCheckingAuth) {
       return Scaffold(
         body: Center(
           child: Column(
@@ -347,16 +331,6 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: _showAuthScreen,
               icon: const Icon(Icons.login, color: Colors.white),
               label: Text(l10n.login, style: const TextStyle(color: Colors.white)),
-            ),
-
-          if (!_hasPermissions)
-            IconButton(
-              onPressed: _showPermissionDialog,
-              icon: const Icon(
-                Icons.security,
-                color: AppColors.warning,
-              ),
-              tooltip: l10n.permissionSettings,
             ),
         ],
       ),
@@ -501,50 +475,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-
-              const SizedBox(height: 40),
-
-              // 权限提示
-              if (!_hasPermissions)
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 40),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.security,
-                        color: Colors.white.withOpacity(0.8),
-                        size: 32,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.locationPermissionRequired,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.locationPermissionMessage,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
-                          fontSize: 14,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
             ],
           ),
         ),

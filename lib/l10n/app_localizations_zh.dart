@@ -487,4 +487,90 @@ class AppLocalizationsZh extends AppLocalizations {
   String switchToViewMode(String mode) {
     return '🌐 切换到 $mode 视角';
   }
+
+  @override
+  String get saveRouteImage => '保存路径图片';
+
+  @override
+  String get savingRouteImage => '正在生成并保存路径图片...';
+
+  @override
+  String get saveSuccess => '✅ 保存成功';
+
+  @override
+  String get saveFailed => '❌ 保存失败';
+
+  @override
+  String routeImageSaved(String path) {
+    return '跑步路径图片已保存到:\n$path';
+  }
+
+  @override
+  String get saveImageFailed => '无法保存路径图片，请检查存储权限。';
+
+  @override
+  String get permissionManagement => '权限管理';
+
+  @override
+  String get permissionsRequired => '需要权限';
+
+  @override
+  String get somePermissionsMissing => '部分权限未授权，可能影响应用功能';
+
+  @override
+  String get locationPermissionMissing => '位置权限未授权';
+
+  @override
+  String get storagePermissionMissing => '存储权限未授权';
+
+  @override
+  String get notificationPermissionMissing => '通知权限未授权';
+
+  @override
+  String get grantAllPermissions => '授予所有权限';
+
+  @override
+  String get checkPermissions => '检查权限';
+
+  @override
+  String get permissionLocation => '位置权限';
+
+  @override
+  String get permissionStorage => '存储权限';
+
+  @override
+  String get permissionNotification => '通知权限';
+
+  @override
+  String get permissionRequired => '必需';
+
+  @override
+  String get permissionOptional => '可选';
+
+  @override
+  String get permissionGranted => '已授权';
+
+  @override
+  String get permissionDenied => '已拒绝';
+
+  @override
+  String get openSettings => '打开设置';
+
+  @override
+  String get permissionLocationDesc => '用于追踪跑步路线和实时定位';
+
+  @override
+  String get permissionStorageDesc => '用于保存跑步数据和路径图片';
+
+  @override
+  String get permissionNotificationDesc => '用于接收跑步提醒和应用通知';
+
+  @override
+  String get allPermissionsGranted => '所有权限已授权';
+
+  @override
+  String get permissionsUpdated => '权限状态已更新';
+
+  @override
+  String get skipForNow => '暂时跳过';
 }
