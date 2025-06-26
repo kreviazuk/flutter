@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:image/image.dart' as img;
 
 /// 🖼️ 路径图片生成服务
 class RouteImageService {
@@ -226,13 +225,13 @@ class RouteImageService {
           children: [
             Icon(Icons.info, color: Colors.blue),
             SizedBox(width: 8),
-            Text('无法获取存储权限'),
+            Text('无法保存到下载文件夹'),
           ],
         ),
         content: const Text(
-          '无法获取外部存储权限，但可以将图片保存到应用目录。\n\n'
-          '您可以通过文件管理器访问应用数据目录查看图片。\n\n'
-          '是否继续保存到应用目录？',
+          '无法获取存储权限，无法保存到公共下载文件夹。\n\n'
+          '但可以将图片保存到应用内部文件夹，您可以通过文件管理器在应用数据目录中找到图片。\n\n'
+          '是否继续保存到应用内部文件夹？',
         ),
         actions: [
           TextButton(
@@ -241,7 +240,7 @@ class RouteImageService {
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('保存到应用目录'),
+            child: const Text('保存到应用文件夹'),
           ),
         ],
       ),
@@ -536,7 +535,97 @@ class RouteImageService {
 
   /// 保存图片到设备
   static Future<String> _saveImageToDevice(Uint8List imageBytes) async {
-    // 获取文档目录
+    try {
+      // 根据平台选择保存路径
+      Directory? saveDirectory;
+
+      if (Platform.isAndroid) {
+        // Android: 优先保存到公共Download目录
+        try {
+          // 尝试获取外部存储的Download目录
+          saveDirectory = Directory('/storage/emulated/0/Download');
+
+          // 如果Download目录不存在或不可写，使用应用外部目录
+          if (!await saveDirectory.exists() || !await _canWriteToDirectory(saveDirectory)) {
+            print('无法访问公共Download目录，使用应用外部目录');
+            final externalDir = await getExternalStorageDirectory();
+            if (externalDir != null) {
+              saveDirectory = Directory('${externalDir.path}/Download');
+            } else {
+              // 最后的fallback
+              final appDir = await getApplicationDocumentsDirectory();
+              saveDirectory = Directory('${appDir.path}/Download');
+            }
+          }
+        } catch (e) {
+          print('获取外部存储目录失败: $e');
+          // fallback到应用文档目录
+          final appDir = await getApplicationDocumentsDirectory();
+          saveDirectory = Directory('${appDir.path}/Download');
+        }
+      } else if (Platform.isIOS) {
+        // iOS: 保存到应用沙盒的Documents/Download目录
+        final appDir = await getApplicationDocumentsDirectory();
+        saveDirectory = Directory('${appDir.path}/Download');
+      } else {
+        // 其他平台fallback
+        final appDir = await getApplicationDocumentsDirectory();
+        saveDirectory = Directory('${appDir.path}/Download');
+      }
+
+      // 创建目录（如果不存在）
+      if (!await saveDirectory.exists()) {
+        await saveDirectory.create(recursive: true);
+        print('创建目录: ${saveDirectory.path}');
+      }
+
+      // 生成文件名（更友好的格式）
+      final now = DateTime.now();
+      final dateStr =
+          '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+      final timeStr =
+          '${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
+      final fileName = '跑步记录_${dateStr}_$timeStr.png';
+      final filePath = '${saveDirectory.path}/$fileName';
+
+      // 保存文件
+      final file = File(filePath);
+      await file.writeAsBytes(imageBytes);
+
+      print('✅ 路径图片已保存到: $filePath');
+
+      // 返回用户友好的路径显示
+      if (Platform.isAndroid && filePath.startsWith('/storage/emulated/0/Download')) {
+        return 'Download/$fileName';
+      } else {
+        return filePath;
+      }
+    } catch (e) {
+      print('保存图片失败: $e');
+      // 最后的fallback：保存到应用内部
+      return await _saveImageToAppDirectory(imageBytes);
+    }
+  }
+
+  /// 检查是否可以写入指定目录
+  static Future<bool> _canWriteToDirectory(Directory directory) async {
+    try {
+      if (!await directory.exists()) {
+        return false;
+      }
+
+      // 尝试创建测试文件
+      final testFile = File('${directory.path}/.test_write');
+      await testFile.writeAsString('test');
+      await testFile.delete();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// 保存到应用内部目录（fallback方案）
+  static Future<String> _saveImageToAppDirectory(Uint8List imageBytes) async {
     final directory = await getApplicationDocumentsDirectory();
 
     // 创建跑步记录文件夹
@@ -546,15 +635,19 @@ class RouteImageService {
     }
 
     // 生成文件名
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final fileName = 'running_route_$timestamp.png';
+    final now = DateTime.now();
+    final dateStr =
+        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+    final timeStr =
+        '${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
+    final fileName = '跑步记录_${dateStr}_$timeStr.png';
     final filePath = '${runningDir.path}/$fileName';
 
     // 保存文件
     final file = File(filePath);
     await file.writeAsBytes(imageBytes);
 
-    print('路径图片已保存到: $filePath');
+    print('⚠️ 图片已保存到应用内部目录: $filePath');
     return filePath;
   }
 }
