@@ -9,9 +9,9 @@ class AppConfig {
   /// 从环境变量获取当前环境，默认为开发环境
   static const String _environment = String.fromEnvironment('ENV', defaultValue: 'development');
 
-  /// 开发环境配置 - 本地开发
-  static const String _devApiUrl = 'http://localhost:3001/api/auth';
-  static const String _devApiUrlAndroid = 'http://localhost:3001/api/auth';
+  /// 开发环境配置 - 使用线上服务器
+  static const String _devApiUrl = 'https://proxy.lawrencezhouda.xyz:8443/api/auth';
+  static const String _devApiUrlAndroid = 'https://proxy.lawrencezhouda.xyz:8443/api/auth';
 
   /// 生产环境配置 - VPS 服务器地址 (HTTPS)
   static const String _prodApiUrl = 'https://proxy.lawrencezhouda.xyz:8443/api/auth';
@@ -43,9 +43,9 @@ class AppConfig {
       case 'dev':
       default:
         if (kIsWeb) {
-          return _devApiUrl; // Web端使用localhost
+          return _devApiUrl; // Web端使用线上服务器
         } else {
-          return _devApiUrlAndroid; // Android/iOS端使用10.0.2.2
+          return _devApiUrlAndroid; // Android/iOS端使用线上服务器
         }
     }
   }

@@ -8,9 +8,6 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-import java.io.FileInputStream
-import java.util.Properties
-
 android {
     namespace = "com.runningtracker.app"
     compileSdk = flutter.compileSdkVersion
@@ -33,22 +30,9 @@ android {
         // Minimum Android version for Google Maps SDK
         // https://developers.google.com/maps/flutter-package/config#android
         minSdk = 21
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
-    }
-
-    signingConfigs {
-        create("release") {
-            val keystorePropertiesFile = rootProject.file("key.properties")
-            val keystoreProperties = Properties()
-            keystoreProperties.load(FileInputStream(keystorePropertiesFile))
-
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-            storeFile = file(keystoreProperties["storeFile"] as String)
-            storePassword = keystoreProperties["storePassword"] as String
-        }
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
     }
 
     // Load signing configuration from key.properties
