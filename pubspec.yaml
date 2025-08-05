@@ -43,7 +43,7 @@ dependencies:
   geolocator: ^10.1.0
   location: ^5.0.3
   # 添加Google Maps作为备用方案
-  google_maps_flutter: ^2.5.3
+  google_maps_flutter: ^2.12.3
 
   # 数据存储
   sqflite: ^2.3.0
@@ -73,7 +73,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of this
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^4.0.0
+  flutter_lints: ^6.0.0
 
   # 自动热重载工具
   hotreloader: ^4.3.0
