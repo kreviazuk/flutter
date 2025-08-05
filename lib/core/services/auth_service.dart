@@ -30,17 +30,35 @@ class AuthService {
   // 发送注册验证码
   static Future<Map<String, dynamic>> sendVerificationCode(String email) async {
     final client = _createHttpClient();
+    final url = '${AppConfig.apiBaseUrl}/send-verification-code';
+    final requestBody = {'email': email};
+
+    // 📝 请求日志
+    print('🌐 ==================== HTTP REQUEST ====================');
+    print('📍 URL: $url');
+    print('📋 Method: POST');
+    print('📦 Headers: Content-Type: application/json');
+    print('📄 Body: ${jsonEncode(requestBody)}');
+    print('⏰ Time: ${DateTime.now()}');
+    print('=======================================================');
 
     try {
       final response = await client.post(
-        Uri.parse('${AppConfig.apiBaseUrl}/send-verification-code'),
+        Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({
-          'email': email,
-        }),
+        body: jsonEncode(requestBody),
       );
+
+      // 📝 响应日志
+      print('🌐 ==================== HTTP RESPONSE ===================');
+      print('📍 URL: $url');
+      print('📊 Status Code: ${response.statusCode}');
+      print('📋 Headers: ${response.headers}');
+      print('📄 Body: ${response.body}');
+      print('⏰ Time: ${DateTime.now()}');
+      print('========================================================');
 
       final data = jsonDecode(response.body);
 
@@ -50,6 +68,13 @@ class AuthService {
         'testCode': data['testCode'], // 测试环境的验证码
       };
     } catch (e) {
+      // 📝 错误日志
+      print('🌐 ==================== HTTP ERROR ======================');
+      print('📍 URL: $url');
+      print('❌ Error: $e');
+      print('⏰ Time: ${DateTime.now()}');
+      print('========================================================');
+      
       return {
         'success': false,
         'message': '网络错误: $e',

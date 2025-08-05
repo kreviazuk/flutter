@@ -9,15 +9,15 @@ class AppConfig {
   /// 从环境变量获取当前环境，默认为开发环境
   static const String _environment = String.fromEnvironment('ENV', defaultValue: 'development');
 
-  /// 开发环境配置 - 使用线上服务器
-  static const String _devApiUrl = 'https://proxy.lawrencezhouda.xyz:8443/api/auth';
-  static const String _devApiUrlAndroid = 'https://proxy.lawrencezhouda.xyz:8443/api/auth';
+  /// 开发环境配置 - 使用远程服务器 (测试环境)
+  static const String _devApiUrl = 'http://proxy.lawrencezhouda.xyz:3001/api/auth';
+  static const String _devApiUrlAndroid = 'http://proxy.lawrencezhouda.xyz:3001/api/auth';
 
-  /// 生产环境配置 - VPS 服务器地址 (HTTPS)
-  static const String _prodApiUrl = 'https://proxy.lawrencezhouda.xyz:8443/api/auth';
+  /// 生产环境配置 - VPS 服务器地址 (HTTP)
+  static const String _prodApiUrl = 'http://proxy.lawrencezhouda.xyz/api/auth';
 
-  /// 测试环境配置 - VPS 服务器地址 (HTTPS)
-  static const String _testApiUrl = 'https://proxy.lawrencezhouda.xyz:8443/api/auth';
+  /// 测试环境配置 - VPS 服务器地址 (HTTP)
+  static const String _testApiUrl = 'http://proxy.lawrencezhouda.xyz/api/auth';
 
   /// 代理配置
   static const String _proxyHost = '192.168.8.119';
@@ -62,10 +62,10 @@ class AppConfig {
     return envProxyPort;
   }
 
-  /// 是否启用代理（仅在调试模式下启用）
+  /// 是否启用代理（已禁用，直接连接线上服务器）
   static bool get isProxyEnabled {
     const forceProxy = bool.fromEnvironment('FORCE_PROXY', defaultValue: false);
-    return forceProxy || (kDebugMode && !kIsWeb);
+    return forceProxy; // 移除自动启用代理的逻辑
   }
 
   /// 当前环境名称
