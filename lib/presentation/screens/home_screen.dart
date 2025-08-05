@@ -9,6 +9,7 @@ import 'countdown_screen.dart';
 import 'auth_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
+import 'flutter_learning_screen.dart';
 
 /// 🏠 主页面 - 带用户认证功能
 class HomeScreen extends StatefulWidget {
@@ -472,6 +473,47 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                     ),
+                  ),
+                ),
+              ),
+
+              // 🎓 Flutter学习页面跳转按钮
+              const SizedBox(height: 40), // 与上方主按钮的间距
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 40), // 左右边距
+                child: ElevatedButton.icon(
+                  // 🔗 点击事件：导航到Flutter学习页面
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const FlutterLearning(),
+                      ),
+                    );
+                  },
+                  // 📱 按钮图标：代码符号
+                  icon: const Icon(Icons.code, color: AppColors.primary),
+                  // 🏷️ 按钮文字
+                  label: const Text(
+                    'Flutter 学习页面',
+                    style: TextStyle(
+                      color: AppColors.primary, // 主题色文字
+                      fontSize: 16, // 字体大小
+                      fontWeight: FontWeight.w600, // 字体粗细
+                    ),
+                  ),
+                  // 🎨 按钮样式配置
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white, // 白色背景
+                    foregroundColor: AppColors.primary, // 主题色前景
+                    padding: const EdgeInsets.symmetric(
+                        // 内边距
+                        horizontal: 24,
+                        vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      // 圆角矩形
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    elevation: 5, // 阴影高度
                   ),
                 ),
               ),
