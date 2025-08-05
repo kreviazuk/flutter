@@ -13,11 +13,11 @@ class AppConfig {
   static const String _devApiUrl = 'http://localhost:3001/api/auth';
   static const String _devApiUrlAndroid = 'http://localhost:3001/api/auth';
 
-  /// 生产环境配置 - VPS 服务器地址
-  static const String _prodApiUrl = 'http://104.225.147.57/api/auth';
+  /// 生产环境配置 - VPS 服务器地址 (HTTPS)
+  static const String _prodApiUrl = 'https://proxy.lawrencezhouda.xyz:8443/api/auth';
 
-  /// 测试环境配置 - VPS 服务器地址
-  static const String _testApiUrl = 'http://104.225.147.57/api/auth';
+  /// 测试环境配置 - VPS 服务器地址 (HTTPS)
+  static const String _testApiUrl = 'https://proxy.lawrencezhouda.xyz:8443/api/auth';
 
   /// 代理配置
   static const String _proxyHost = '192.168.8.119';

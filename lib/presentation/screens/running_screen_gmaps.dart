@@ -746,13 +746,37 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
   void _showSaveResult(String? savedPath) {
     final l10n = AppLocalizations.of(context)!;
 
+    // 构建用户友好的提示信息
+    String contentText;
+    if (savedPath != null) {
+      if (savedPath.startsWith('Download/')) {
+        // 保存到公共下载文件夹
+        contentText = '🎉 跑步路径图片已成功保存到下载文件夹!\n\n📁 $savedPath\n\n您可以在文件管理器的下载文件夹中找到图片，方便分享给朋友。';
+      } else if (savedPath.contains('running_records')) {
+        // 保存到应用内部文件夹
+        contentText = '✅ 跑步路径图片已保存到应用文件夹\n\n📱 由于权限限制，图片保存在应用内部。您可以通过文件管理器在应用数据目录中找到图片。';
+      } else {
+        // 其他情况
+        contentText = '✅ 跑步路径图片保存成功\n\n📍 保存位置: $savedPath';
+      }
+    } else {
+      contentText = '❌ 图片保存失败\n\n请检查存储权限或稍后重试。';
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(savedPath != null ? l10n.saveSuccess : l10n.saveFailed),
-        content: Text(
-          savedPath != null ? 'Running route image saved to:\n$savedPath' : l10n.saveImageFailed,
+        title: Row(
+          children: [
+            Icon(
+              savedPath != null ? Icons.check_circle : Icons.error,
+              color: savedPath != null ? Colors.green : Colors.red,
+            ),
+            const SizedBox(width: 8),
+            Text(savedPath != null ? '保存成功' : '保存失败'),
+          ],
         ),
+        content: Text(contentText),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),

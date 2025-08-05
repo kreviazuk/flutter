@@ -80,12 +80,12 @@ run_app() {
             ;;
         "android-test")
             echo -e "${BLUE}🚀 启动Android应用 - VPS测试环境${NC}"
-            echo -e "${YELLOW}API地址: http://104.225.147.57/api/auth${NC}"
+            echo -e "${YELLOW}API地址: https://proxy.lawrencezhouda.xyz:8443/api/auth${NC}"
             local device_id=$(get_android_device)
             flutter clean && flutter pub get
             flutter run -d "$device_id" \
                 --dart-define=ENV=test \
-                --dart-define=API_BASE_URL=http://104.225.147.57/api/auth
+                --dart-define=API_BASE_URL=https://proxy.lawrencezhouda.xyz:8443/api/auth
             ;;
         "web-dev")
             echo -e "${BLUE}🌐 启动Web应用 - 开发环境${NC}"
@@ -94,11 +94,11 @@ run_app() {
             ;;
         "web-test")
             echo -e "${BLUE}🌐 启动Web应用 - VPS测试环境${NC}"
-            echo -e "${YELLOW}API地址: http://104.225.147.57/api/auth${NC}"
+            echo -e "${YELLOW}API地址: https://proxy.lawrencezhouda.xyz:8443/api/auth${NC}"
             flutter clean && flutter pub get
             flutter run -d chrome --web-port 8080 \
                 --dart-define=ENV=test \
-                --dart-define=API_BASE_URL=http://104.225.147.57/api/auth
+                --dart-define=API_BASE_URL=https://proxy.lawrencezhouda.xyz:8443/api/auth
             ;;
         "ios-dev")
             echo -e "${BLUE}📱 启动iOS应用 - 开发环境${NC}"
@@ -247,7 +247,7 @@ test_tools() {
             echo "测试本地API..."
             curl -f http://localhost:3000/health || echo "本地API连接失败"
             echo "测试VPS API..."
-            curl -f http://104.225.147.57/api/health || echo "VPS API连接失败"
+            curl -f https://proxy.lawrencezhouda.xyz:8443/api/health || echo "VPS API连接失败"
             ;;
         "config")
             echo -e "${BLUE}🔍 检查配置...${NC}"
