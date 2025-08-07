@@ -3,8 +3,8 @@ description: "🏃‍♂️ Professional running route tracking app - Record eve
 publish_to: "none"
 
 # Google Play版本配置
-# versionName (1.0.2) + versionCode (3)
-version: 1.0.2+3
+# versionName (1.0.4) + versionCode (5)
+version: 1.0.4+5
 
 environment:
   sdk: ^3.5.4

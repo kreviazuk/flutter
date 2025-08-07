@@ -76,6 +76,9 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
   @override
   void initState() {
     super.initState();
+    
+    print('🏃‍♂️ RunningScreenGMaps 初始化开始');
+    print('📱 传入位置: ${widget.initialPosition?.latitude}, ${widget.initialPosition?.longitude}');
 
     // 初始化动画控制器
     _frameController = AnimationController(
@@ -968,9 +971,16 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
               bearing: _currentBearing,
             ),
             onMapCreated: (GoogleMapController controller) {
+              print('🗺️ Google Maps 创建成功');
+              print('📍 初始位置: ${_defaultLocation.latitude}, ${_defaultLocation.longitude}');
+              print('📱 当前位置: ${_currentPosition?.latitude}, ${_currentPosition?.longitude}');
+              
               _mapController = controller;
               if (_currentPosition != null) {
+                print('✅ 调用 _updateMapLocation()');
                 _updateMapLocation();
+              } else {
+                print('⚠️ _currentPosition 为空，跳过位置更新');
               }
             },
             markers: _markers,
