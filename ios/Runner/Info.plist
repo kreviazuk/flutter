@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>My Flutter App</string>
+	<string>Running Tracker</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>my_flutter_app</string>
+	<string>running_tracker</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -45,5 +45,30 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	
+	<!-- 位置权限 -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs location access to track your running route and calculate speed.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app needs location access to track your running route and calculate speed.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>This app needs location access to track your running route and calculate speed.</string>
+	
+	<!-- 相机和相册权限 -->
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to take photos for your running records.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs photo library access to save and share your running route images.</string>
+	
+	<!-- 运动和健身权限 -->
+	<key>NSMotionUsageDescription</key>
+	<string>This app uses motion data to enhance running tracking accuracy.</string>
+	
+	<!-- 后台模式 -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>background-processing</string>
+	</array>
 </dict>
 </plist>
