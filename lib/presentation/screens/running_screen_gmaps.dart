@@ -38,9 +38,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
 
   // GPS和位置数据
   Position? _currentPosition;
-  Position? _lastPosition;
   StreamSubscription<Position>? _positionSubscription;
-  bool _isLocationLoaded = false;
 
   // GPS追踪相关
   StreamSubscription<Position>? _realTimePositionSubscription;
@@ -49,7 +47,6 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
   // 模拟GPS相关
   Timer? _simulationTimer;
   double _simulationAngle = 0;
-  double _simulationSpeed = 3.0;
   int _simulationStep = 0;
 
   // 地图和路线数据
@@ -69,6 +66,11 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
   double _averageSpeed = 0.0;
   int _calories = 0;
   Timer? _timer;
+  
+  // 速度计算相关
+  DateTime? _lastPositionTime;
+  final List<double> _speedHistory = []; // 存储最近的速度数据用于平滑
+  static const int _maxSpeedHistorySize = 5; // 保留最近5个速度值
 
   // 地图初始位置（北京天安门广场）
   static const LatLng _defaultLocation = LatLng(39.909187, 116.397451);
@@ -108,7 +110,6 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
       // 使用真实的GPS位置
       _currentPosition = widget.initialPosition;
       setState(() {
-        _isLocationLoaded = true;
         _statusMessage = 'GPS ready, current location locked! 🎮 High Frame Rate 3D Mode';
       });
     } else {
@@ -158,7 +159,6 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
             speed: 0.0,
             speedAccuracy: 1.0,
           );
-          _isLocationLoaded = true;
         });
 
         // 异步更新国际化文本
@@ -181,7 +181,6 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
 
       setState(() {
         _currentPosition = position;
-        _isLocationLoaded = true;
         _statusMessage = 'GPS ready, current location locked! 🎮 High Frame Rate 3D Mode';
       });
 
@@ -207,7 +206,6 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
           speed: 0.0,
           speedAccuracy: 1.0,
         );
-        _isLocationLoaded = true;
       });
 
       // 异步更新国际化文本
@@ -511,10 +509,8 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     double newLat = _currentPosition!.latitude + latOffset;
     double newLon = _currentPosition!.longitude + lonOffset;
 
-    // 模拟更真实的速度变化
-    double simulatedSpeed =
-        2.5 + math.sin(_simulationStep * 0.1) * 1.5 + math.Random().nextDouble() * 0.5;
-
+    // 注意：即使在模拟模式下，我们也不再使用虚拟速度
+    // 而是让 _calculateRealTimeSpeed 基于位置变化来计算真实速度
     Position newPosition = Position(
       latitude: newLat,
       longitude: newLon,
@@ -524,7 +520,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
       altitudeAccuracy: 2.0,
       heading: _simulationAngle * 180 / math.pi,
       headingAccuracy: 3.0,
-      speed: simulatedSpeed,
+      speed: 0.0, // 不再使用虚拟速度，让计算函数处理
       speedAccuracy: 0.3,
     );
 
@@ -614,11 +610,13 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
         newPosition.longitude,
       );
 
+      // 计算实时速度（基于位置变化）
+      double calculatedSpeed = _calculateRealTimeSpeed(newPosition, distance);
+
       setState(() {
         _totalDistance += distance;
-        _lastPosition = _currentPosition;
         _currentPosition = newPosition;
-        _currentSpeed = newPosition.speed;
+        _currentSpeed = calculatedSpeed; // 使用计算出的速度而不是GPS提供的速度
       });
 
       // 添加路线点
@@ -633,8 +631,55 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     } else {
       setState(() {
         _currentPosition = newPosition;
+        _lastPositionTime = newPosition.timestamp;
       });
     }
+  }
+
+  /// 计算实时速度（基于位置变化和时间差）
+  double _calculateRealTimeSpeed(Position newPosition, double distance) {
+    // 如果没有上一个位置时间，使用GPS提供的速度作为初始值
+    if (_lastPositionTime == null) {
+      _lastPositionTime = newPosition.timestamp;
+      print('🏃‍♂️ 速度计算初始化 - GPS速度: ${(newPosition.speed * 3.6).toStringAsFixed(1)} km/h');
+      return newPosition.speed;
+    }
+
+    // 计算时间差（秒）
+    double timeDiff = newPosition.timestamp.difference(_lastPositionTime!).inMilliseconds / 1000.0;
+    
+    // 如果时间差太小，避免除零错误
+    if (timeDiff <= 0.1) {
+      return _currentSpeed; // 返回上一次的速度
+    }
+
+    // 计算瞬时速度（米/秒）
+    double instantSpeed = distance / timeDiff;
+    
+    // 调试信息
+    print('📊 实时速度计算: 距离=${distance.toStringAsFixed(1)}m, 时间=${timeDiff.toStringAsFixed(1)}s, 瞬时速度=${(instantSpeed * 3.6).toStringAsFixed(1)}km/h');
+    
+    // 过滤异常值（速度超过50km/h认为是异常）
+    if (instantSpeed > 13.89) { // 50km/h = 13.89m/s
+      print('⚠️ 异常速度过滤: ${(instantSpeed * 3.6).toStringAsFixed(1)}km/h -> 使用上次速度');
+      instantSpeed = _currentSpeed; // 使用上一次的速度
+    }
+
+    // 添加到速度历史记录
+    _speedHistory.add(instantSpeed);
+    if (_speedHistory.length > _maxSpeedHistorySize) {
+      _speedHistory.removeAt(0);
+    }
+
+    // 计算平滑速度（使用移动平均）
+    double smoothedSpeed = _speedHistory.reduce((a, b) => a + b) / _speedHistory.length;
+
+    print('✅ 平滑后速度: ${(smoothedSpeed * 3.6).toStringAsFixed(1)}km/h (基于${_speedHistory.length}个数据点)');
+
+    // 更新时间记录
+    _lastPositionTime = newPosition.timestamp;
+
+    return smoothedSpeed;
   }
 
   /// 更新路线显示（增强3D效果）
@@ -660,6 +705,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
   /// 更新跑步统计数据
   void _updateRunningStats() {
     if (_elapsedTime > 0) {
+      // 基于总距离和总时间计算平均速度（米/秒）
       _averageSpeed = _totalDistance / _elapsedTime;
       // 简单的卡路里计算（约每公里消耗50卡路里）
       _calories = (_totalDistance / 1000 * 50).round();
@@ -683,7 +729,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
                 Icons.straighten),
             _buildSummaryItem(l10n.time, _formatTime(_elapsedTime), Icons.timer),
             _buildSummaryItem(
-                l10n.averageSpeed,
+                '${l10n.averageSpeed} (实时计算)',
                 '${(_averageSpeed * 3.6).toStringAsFixed(1)} ${l10n.kilometersPerHour}',
                 Icons.speed),
             _buildSummaryItem(
@@ -819,6 +865,10 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
       _targetBearing = 0.0;
       _routePoints.clear();
       _polylines.clear();
+
+      // 重置速度计算相关数据
+      _lastPositionTime = null;
+      _speedHistory.clear();
 
       // 清除所有标记，重新添加当前位置
       _markers.clear();
@@ -1159,7 +1209,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
                           '${(_totalDistance / 1000).toStringAsFixed(2)} ${l10n.kilometers}'),
                       _buildStatItem(l10n.time, _formatTime(_elapsedTime)),
                       _buildStatItem(
-                          l10n.speed, '${_formatSpeed(_currentSpeed)} ${l10n.kilometersPerHour}'),
+                          '${l10n.speed} 📊', '${_formatSpeed(_currentSpeed)} ${l10n.kilometersPerHour}'),
                       _buildStatItem(l10n.calories, '$_calories'),
                     ],
                   ),
