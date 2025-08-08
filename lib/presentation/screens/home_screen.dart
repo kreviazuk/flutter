@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:convert';
+import 'dart:async';
 import '../theme/app_colors.dart';
 import '../../core/services/auth_service.dart';
 import '../../data/models/user.dart';
@@ -23,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Position? _currentPosition;
   bool _isGettingLocation = false;
   String _locationStatus = '';
+  Timer? _locationRetryTimer;
 
   // 用户认证相关
   User? _currentUser;
@@ -103,6 +105,8 @@ class _HomeScreenState extends State<HomeScreen> {
             _locationStatus = l10n.locationFailed;
             _isGettingLocation = false;
           });
+          // 用户取消位置授权时，安排重试获取位置
+          _scheduleLocationRetry();
           return;
         }
       }
@@ -123,14 +127,26 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _currentPosition = position;
         _isGettingLocation = false;
-        _locationStatus = l10n.locationReady;
+        // 定位成功不展示文案
+        _locationStatus = '';
       });
+      // 成功后取消可能存在的重试定时器
+      _locationRetryTimer?.cancel();
     } catch (e) {
       setState(() {
         _locationStatus = l10n.locationFailed;
         _isGettingLocation = false;
       });
     }
+  }
+
+  void _scheduleLocationRetry() {
+    _locationRetryTimer?.cancel();
+    _locationRetryTimer = Timer(const Duration(seconds: 10), () {
+      if (mounted) {
+        _startGettingLocation();
+      }
+    });
   }
 
   /// 显示登录页面
@@ -561,5 +577,11 @@ class _HomeScreenState extends State<HomeScreen> {
         size: size * 0.6,
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _locationRetryTimer?.cancel();
+    super.dispose();
   }
 }

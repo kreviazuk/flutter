@@ -58,6 +58,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
   bool _isRunning = false;
   bool _isPaused = false;
   String _statusMessage = '';
+  Timer? _permissionRetryTimer;
 
   // 跑步数据
   double _totalDistance = 0.0;
@@ -66,7 +67,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
   double _averageSpeed = 0.0;
   int _calories = 0;
   Timer? _timer;
-  
+
   // 速度计算相关
   DateTime? _lastPositionTime;
   final List<double> _speedHistory = []; // 存储最近的速度数据用于平滑
@@ -78,7 +79,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
   @override
   void initState() {
     super.initState();
-    
+
     print('🏃‍♂️ RunningScreenGMaps 初始化开始');
     print('📱 传入位置: ${widget.initialPosition?.latitude}, ${widget.initialPosition?.longitude}');
 
@@ -109,8 +110,9 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     if (widget.initialPosition != null) {
       // 使用真实的GPS位置
       _currentPosition = widget.initialPosition;
+      // 定位成功不展示文案
       setState(() {
-        _statusMessage = 'GPS ready, current location locked! 🎮 High Frame Rate 3D Mode';
+        _statusMessage = '';
       });
     } else {
       // 如果没有GPS位置，尝试获取当前位置
@@ -128,25 +130,16 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
   /// 获取当前位置
   Future<void> _getCurrentLocation() async {
     try {
+      // 尝试开始获取位置时不展示文案
       setState(() {
-        _statusMessage = 'Getting GPS location...';
-      });
-
-      // 异步更新国际化文本
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          final l10n = AppLocalizations.of(context)!;
-          setState(() {
-            _statusMessage = l10n.gettingGpsLocation;
-          });
-        }
+        _statusMessage = '';
       });
 
       // 检查位置服务是否开启
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         setState(() {
-          _statusMessage = 'GPS service not enabled, using default location';
+          _statusMessage = '';
           _currentPosition = Position(
             latitude: _defaultLocation.latitude,
             longitude: _defaultLocation.longitude,
@@ -160,16 +153,14 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
             speedAccuracy: 1.0,
           );
         });
+        return;
+      }
 
-        // 异步更新国际化文本
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            final l10n = AppLocalizations.of(context)!;
-            setState(() {
-              _statusMessage = l10n.gpsServiceNotEnabled;
-            });
-          }
-        });
+      // 权限检查：仅在用户取消位置授权时继续重试
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        _schedulePermissionRetry();
         return;
       }
 
@@ -181,7 +172,8 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
 
       setState(() {
         _currentPosition = position;
-        _statusMessage = 'GPS ready, current location locked! 🎮 High Frame Rate 3D Mode';
+        // 定位成功不展示文案
+        _statusMessage = '';
       });
 
       // 等待UI构建完成后更新地图
@@ -193,7 +185,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     } catch (e) {
       print('获取位置失败: $e');
       setState(() {
-        _statusMessage = 'Location failed, using default location';
+        _statusMessage = '';
         _currentPosition = Position(
           latitude: _defaultLocation.latitude,
           longitude: _defaultLocation.longitude,
@@ -208,16 +200,18 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
         );
       });
 
-      // 异步更新国际化文本
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          final l10n = AppLocalizations.of(context)!;
-          setState(() {
-            _statusMessage = l10n.locationFailed;
-          });
-        }
-      });
+      // 用户取消权限或失败时安排重试
+      _schedulePermissionRetry();
     }
+  }
+
+  void _schedulePermissionRetry() {
+    _permissionRetryTimer?.cancel();
+    _permissionRetryTimer = Timer(const Duration(seconds: 10), () {
+      if (mounted && _currentPosition == null) {
+        _getCurrentLocation();
+      }
+    });
   }
 
   @override
@@ -229,11 +223,11 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
 
   void _updateInitialStatusMessage() {
     if (mounted) {
-      final l10n = AppLocalizations.of(context)!;
       setState(() {
         if (_statusMessage
             .contains('GPS ready, current location locked! 🎮 High Frame Rate 3D Mode')) {
-          _statusMessage = '${l10n.gpsReady} 🎮 ${l10n.highFrameRate3DMode}';
+          // 成功时不展示任何提示
+          _statusMessage = '';
         }
       });
     }
@@ -241,6 +235,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
 
   @override
   void dispose() {
+    _permissionRetryTimer?.cancel();
     _positionSubscription?.cancel();
     _realTimePositionSubscription?.cancel();
     _timer?.cancel();
@@ -276,9 +271,8 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
 
       final l10n = AppLocalizations.of(context)!;
       final modeText = _is3DMode ? l10n.threeDMode : l10n.twoDMode;
-      _statusMessage = _isRunning
-          ? '${l10n.running}... (${_currentFPS}FPS ${modeText}${l10n.mode})'
-          : '${l10n.gpsReady} 🎮 ${_currentFPS}FPS ${modeText}${l10n.mode}';
+      _statusMessage =
+          _isRunning ? '${l10n.running}... (${_currentFPS}FPS ${modeText}${l10n.mode})' : '';
     });
 
     // 显示帧率切换提示
@@ -293,9 +287,8 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
 
       final l10n = AppLocalizations.of(context)!;
       final modeText = _is3DMode ? l10n.threeDMode : l10n.twoDMode;
-      _statusMessage = _isRunning
-          ? '${l10n.running}... (${_currentFPS}FPS ${modeText}${l10n.mode})'
-          : '${l10n.gpsReady} 🎮 ${_currentFPS}FPS ${modeText}${l10n.mode}';
+      _statusMessage =
+          _isRunning ? '${l10n.running}... (${_currentFPS}FPS ${modeText}${l10n.mode})' : '';
     });
 
     // 平滑切换3D视角
@@ -647,7 +640,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
 
     // 计算时间差（秒）
     double timeDiff = newPosition.timestamp.difference(_lastPositionTime!).inMilliseconds / 1000.0;
-    
+
     // 如果时间差太小，避免除零错误
     if (timeDiff <= 0.1) {
       return _currentSpeed; // 返回上一次的速度
@@ -655,12 +648,14 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
 
     // 计算瞬时速度（米/秒）
     double instantSpeed = distance / timeDiff;
-    
+
     // 调试信息
-    print('📊 实时速度计算: 距离=${distance.toStringAsFixed(1)}m, 时间=${timeDiff.toStringAsFixed(1)}s, 瞬时速度=${(instantSpeed * 3.6).toStringAsFixed(1)}km/h');
-    
+    print(
+        '📊 实时速度计算: 距离=${distance.toStringAsFixed(1)}m, 时间=${timeDiff.toStringAsFixed(1)}s, 瞬时速度=${(instantSpeed * 3.6).toStringAsFixed(1)}km/h');
+
     // 过滤异常值（速度超过50km/h认为是异常）
-    if (instantSpeed > 13.89) { // 50km/h = 13.89m/s
+    if (instantSpeed > 13.89) {
+      // 50km/h = 13.89m/s
       print('⚠️ 异常速度过滤: ${(instantSpeed * 3.6).toStringAsFixed(1)}km/h -> 使用上次速度');
       instantSpeed = _currentSpeed; // 使用上一次的速度
     }
@@ -674,7 +669,8 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     // 计算平滑速度（使用移动平均）
     double smoothedSpeed = _speedHistory.reduce((a, b) => a + b) / _speedHistory.length;
 
-    print('✅ 平滑后速度: ${(smoothedSpeed * 3.6).toStringAsFixed(1)}km/h (基于${_speedHistory.length}个数据点)');
+    print(
+        '✅ 平滑后速度: ${(smoothedSpeed * 3.6).toStringAsFixed(1)}km/h (基于${_speedHistory.length}个数据点)');
 
     // 更新时间记录
     _lastPositionTime = newPosition.timestamp;
@@ -872,9 +868,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
 
       // 清除所有标记，重新添加当前位置
       _markers.clear();
-      final l10n = AppLocalizations.of(context)!;
-      final modeText = _is3DMode ? l10n.threeDMode : l10n.twoDMode;
-      _statusMessage = '${l10n.gpsReady} 🎮 ${_currentFPS}FPS ${modeText}${l10n.mode}';
+      _statusMessage = '';
     });
 
     // 重置到初始位置
@@ -961,16 +955,14 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
           _statusMessage = '${l10n.running}... (${_currentFPS}FPS ${modeText}${l10n.mode})';
         }
       } else {
-        // GPS就绪状态 - 使用国际化文本
-        _statusMessage = '${l10n.gpsReady} 🎮 ${_currentFPS}FPS ${modeText}${l10n.mode}';
+        // 非跑步状态不展示定位成功的文案
+        _statusMessage = '';
       }
     });
   }
 
   /// 保存路径图片
   Future<void> _saveRouteImage() async {
-    final l10n = AppLocalizations.of(context)!;
-
     try {
       // 显示保存中提示
       _showSavingDialog();
@@ -1008,7 +1000,6 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-
     return Scaffold(
       body: Stack(
         children: [
@@ -1024,7 +1015,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
               print('🗺️ Google Maps 创建成功');
               print('📍 初始位置: ${_defaultLocation.latitude}, ${_defaultLocation.longitude}');
               print('📱 当前位置: ${_currentPosition?.latitude}, ${_currentPosition?.longitude}');
-              
+
               _mapController = controller;
               if (_currentPosition != null) {
                 print('✅ 调用 _updateMapLocation()');
@@ -1208,8 +1199,8 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
                       _buildStatItem(l10n.distance,
                           '${(_totalDistance / 1000).toStringAsFixed(2)} ${l10n.kilometers}'),
                       _buildStatItem(l10n.time, _formatTime(_elapsedTime)),
-                      _buildStatItem(
-                          '${l10n.speed} 📊', '${_formatSpeed(_currentSpeed)} ${l10n.kilometersPerHour}'),
+                      _buildStatItem('${l10n.speed} 📊',
+                          '${_formatSpeed(_currentSpeed)} ${l10n.kilometersPerHour}'),
                       _buildStatItem(l10n.calories, '$_calories'),
                     ],
                   ),
