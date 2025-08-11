@@ -324,10 +324,11 @@ class RouteImageService {
     if (routePoints.isEmpty) return null;
 
     const double imageWidth = 800;
-    const double imageHeight = 600;
+    const double imageHeight = 1200;
     const double padding = 40;
-    const double statsHeight = 120;
-    const double mapHeight = imageHeight - statsHeight - padding * 2;
+    const double mapHeight = 720;
+    const double userInfoHeight = 160;
+    const double statsHeight = 280;
 
     // 创建图片画布
     final recorder = ui.PictureRecorder();
@@ -336,21 +337,33 @@ class RouteImageService {
     // 绘制背景
     canvas.drawRect(
       const Rect.fromLTWH(0, 0, imageWidth, imageHeight),
-      Paint()..color = Colors.white,
+      Paint()..color = const Color(0xFFF8F9FA),
     );
 
     // 计算路径边界
     final bounds = _calculateBounds(routePoints);
 
+    // 绘制地图区域（带圆角背景）
+    final mapRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(padding, padding, imageWidth - padding * 2, mapHeight),
+      const Radius.circular(16),
+    );
+    canvas.drawRRect(
+      mapRect,
+      Paint()..color = Colors.white,
+    );
+
     // 绘制路径
-    _drawRoute(canvas, routePoints, bounds, padding, padding, imageWidth - padding * 2, mapHeight);
+    _drawModernRoute(canvas, routePoints, bounds, padding + 10, padding + 10,
+        imageWidth - padding * 2 - 20, mapHeight - 20);
 
-    // 绘制统计信息
-    _drawStats(canvas, totalDistance, elapsedTime, averageSpeed, calories, isSimulated, padding,
-        mapHeight + padding * 1.5, imageWidth - padding * 2, statsHeight);
+    // 绘制用户信息
+    _drawUserInfo(
+        canvas, padding, mapHeight + padding + 10, imageWidth - padding * 2, userInfoHeight);
 
-    // 绘制标题
-    _drawTitle(canvas, imageWidth, padding);
+    // 绘制现代化统计数据
+    _drawModernStats(canvas, totalDistance, elapsedTime, averageSpeed, padding,
+        mapHeight + userInfoHeight + padding + 30, imageWidth - padding * 2, statsHeight);
 
     // 转换为图片
     final picture = recorder.endRecording();
@@ -378,25 +391,83 @@ class RouteImageService {
       maxLng = maxLng > point.longitude ? maxLng : point.longitude;
     }
 
-    // 添加一些边距
-    const margin = 0.001;
+    // 计算当前范围
+    double latRange = maxLat - minLat;
+    double lngRange = maxLng - minLng;
+
+    // 确保最小范围，避免点过于集中导致显示问题
+    const double minRange = 0.002; // 大约200米的范围
+    if (latRange < minRange) {
+      final center = (minLat + maxLat) / 2;
+      minLat = center - minRange / 2;
+      maxLat = center + minRange / 2;
+      latRange = minRange;
+    }
+
+    if (lngRange < minRange) {
+      final center = (minLng + maxLng) / 2;
+      minLng = center - minRange / 2;
+      maxLng = center + minRange / 2;
+      lngRange = minRange;
+    }
+
+    // 添加边距 (10%的范围作为边距)
+    final latMargin = latRange * 0.1;
+    final lngMargin = lngRange * 0.1;
+
+    print('📊 路径边界：纬度 $minLat ~ $maxLat, 经度 $minLng ~ $maxLng');
+    print('📏 范围：纬度 ${latRange.toStringAsFixed(6)}, 经度 ${lngRange.toStringAsFixed(6)}');
+
     return _Bounds(
-      minLat - margin,
-      maxLat + margin,
-      minLng - margin,
-      maxLng + margin,
+      minLat - latMargin,
+      maxLat + latMargin,
+      minLng - lngMargin,
+      maxLng + lngMargin,
     );
   }
 
-  /// 绘制路径
-  static void _drawRoute(Canvas canvas, List<LatLng> points, _Bounds bounds, double offsetX,
+  /// 绘制现代化路径
+  static void _drawModernRoute(Canvas canvas, List<LatLng> points, _Bounds bounds, double offsetX,
       double offsetY, double width, double height) {
-    if (points.length < 2) return;
+    // 绘制地图背景网格（总是绘制，即使没有路径）
+    _drawMapGrid(canvas, offsetX, offsetY, width, height);
+
+    // 如果没有足够的点，显示提示信息
+    if (points.isEmpty) {
+      _drawCenteredText(
+        canvas,
+        '暂无路径数据',
+        offsetX + width / 2,
+        offsetY + height / 2,
+        const TextStyle(
+          fontSize: 64,
+          color: Color(0xFF6B7280),
+          fontWeight: FontWeight.w500,
+        ),
+      );
+      return;
+    }
+
+    // 如果只有一个点，绘制单点标记
+    if (points.length == 1) {
+      final point = _convertLatLngToPixel(points.first, bounds, width, height);
+      canvas.drawCircle(
+        Offset(offsetX + point.dx, offsetY + point.dy),
+        8,
+        Paint()..color = const Color(0xFF10B981),
+      );
+      canvas.drawCircle(
+        Offset(offsetX + point.dx, offsetY + point.dy),
+        4,
+        Paint()..color = Colors.white,
+      );
+      return;
+    }
 
     final path = Path();
     final paint = Paint()
-      ..color = const Color(0xFF2196F3)
-      ..strokeWidth = 4
+      ..color = const Color(0xFFFF6B35) // 橙色路径
+      ..strokeWidth = 6 // 增加线宽以适应高分辨率
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
@@ -404,6 +475,10 @@ class RouteImageService {
     // 转换第一个点
     final firstPoint = _convertLatLngToPixel(points.first, bounds, width, height);
     path.moveTo(offsetX + firstPoint.dx, offsetY + firstPoint.dy);
+
+    print('🗺️ 绘制路径：共 ${points.length} 个点');
+    print('📍 起点：${points.first.latitude}, ${points.first.longitude}');
+    print('📐 像素坐标：${firstPoint.dx}, ${firstPoint.dy}');
 
     // 添加路径点
     for (int i = 1; i < points.length; i++) {
@@ -413,8 +488,83 @@ class RouteImageService {
 
     canvas.drawPath(path, paint);
 
-    // 绘制起点和终点标记
-    _drawMarkers(canvas, points, bounds, offsetX, offsetY, width, height);
+    // 绘制现代化的起点和终点标记
+    _drawModernMarkers(canvas, points, bounds, offsetX, offsetY, width, height);
+  }
+
+  /// 绘制地图网格背景
+  static void _drawMapGrid(
+      Canvas canvas, double offsetX, double offsetY, double width, double height) {
+    // 绘制背景色
+    canvas.drawRect(
+      Rect.fromLTWH(offsetX, offsetY, width, height),
+      Paint()..color = const Color(0xFFF8FAFC),
+    );
+
+    final gridPaint = Paint()
+      ..color = const Color(0xFFE2E8F0).withOpacity(0.8)
+      ..strokeWidth = 1.5;
+
+    // 绘制垂直线 (间距调整为适应高分辨率)
+    for (double x = offsetX; x <= offsetX + width; x += 40) {
+      canvas.drawLine(
+        Offset(x, offsetY),
+        Offset(x, offsetY + height),
+        gridPaint,
+      );
+    }
+
+    // 绘制水平线
+    for (double y = offsetY; y <= offsetY + height; y += 40) {
+      canvas.drawLine(
+        Offset(offsetX, y),
+        Offset(offsetX + width, y),
+        gridPaint,
+      );
+    }
+
+    // 绘制地图边框
+    canvas.drawRect(
+      Rect.fromLTWH(offsetX, offsetY, width, height),
+      Paint()
+        ..color = const Color(0xFFCBD5E1)
+        ..strokeWidth = 2
+        ..style = PaintingStyle.stroke,
+    );
+  }
+
+  /// 绘制现代化标记
+  static void _drawModernMarkers(Canvas canvas, List<LatLng> points, _Bounds bounds, double offsetX,
+      double offsetY, double width, double height) {
+    if (points.isEmpty) return;
+
+    // 起点 (绿色圆点) - 适应高分辨率
+    final startPoint = _convertLatLngToPixel(points.first, bounds, width, height);
+    canvas.drawCircle(
+      Offset(offsetX + startPoint.dx, offsetY + startPoint.dy),
+      12,
+      Paint()..color = const Color(0xFF10B981),
+    );
+    canvas.drawCircle(
+      Offset(offsetX + startPoint.dx, offsetY + startPoint.dy),
+      6,
+      Paint()..color = Colors.white,
+    );
+
+    // 终点 (红色圆点) - 适应高分辨率
+    if (points.length > 1) {
+      final endPoint = _convertLatLngToPixel(points.last, bounds, width, height);
+      canvas.drawCircle(
+        Offset(offsetX + endPoint.dx, offsetY + endPoint.dy),
+        12,
+        Paint()..color = const Color(0xFFEF4444),
+      );
+      canvas.drawCircle(
+        Offset(offsetX + endPoint.dx, offsetY + endPoint.dy),
+        6,
+        Paint()..color = Colors.white,
+      );
+    }
   }
 
   /// 转换经纬度到像素坐标
@@ -425,91 +575,133 @@ class RouteImageService {
     return Offset(x, y);
   }
 
-  /// 绘制起点和终点标记
-  static void _drawMarkers(Canvas canvas, List<LatLng> points, _Bounds bounds, double offsetX,
-      double offsetY, double width, double height) {
-    if (points.isEmpty) return;
-
-    // 起点 (绿色)
-    final startPoint = _convertLatLngToPixel(points.first, bounds, width, height);
+  /// 绘制用户信息
+  static void _drawUserInfo(
+      Canvas canvas, double offsetX, double offsetY, double width, double height) {
+    // 绘制头像背景 - 适应高分辨率
     canvas.drawCircle(
-      Offset(offsetX + startPoint.dx, offsetY + startPoint.dy),
-      8,
-      Paint()..color = Colors.green,
+      Offset(offsetX + 60, offsetY + 60),
+      40,
+      Paint()..color = const Color(0xFF6B7280),
     );
 
-    // 终点 (红色)
-    if (points.length > 1) {
-      final endPoint = _convertLatLngToPixel(points.last, bounds, width, height);
-      canvas.drawCircle(
-        Offset(offsetX + endPoint.dx, offsetY + endPoint.dy),
-        8,
-        Paint()..color = Colors.red,
+    // 绘制头像图标
+    _drawText(
+      canvas,
+      '👤',
+      offsetX + 40,
+      offsetY + 40,
+      const TextStyle(
+        fontSize: 40,
+        color: Colors.white,
+      ),
+    );
+
+    // 绘制用户名
+    _drawText(
+      canvas,
+      '跑步爱好者',
+      offsetX + 120,
+      offsetY + 30,
+      const TextStyle(
+        fontSize: 36,
+        fontWeight: FontWeight.bold,
+        color: Color(0xFF1F2937),
+      ),
+    );
+
+    // 绘制时间
+    final now = DateTime.now();
+    final timeString = _formatDateTime(now);
+    _drawText(
+      canvas,
+      timeString,
+      offsetX + 120,
+      offsetY + 80,
+      const TextStyle(
+        fontSize: 28,
+        color: Color(0xFF6B7280),
+      ),
+    );
+  }
+
+  /// 绘制现代化统计数据
+  static void _drawModernStats(Canvas canvas, double totalDistance, int elapsedTime,
+      double averageSpeed, double offsetX, double offsetY, double width, double height) {
+    // 计算配速 (分钟/公里)，防止除零错误
+    String paceString = '--:--';
+    if (totalDistance > 0) {
+      final distanceInKm = totalDistance / 1000;
+      final paceInMinutesPerKm = elapsedTime / distanceInKm / 60;
+      final paceMinutes = paceInMinutesPerKm.floor();
+      final paceSeconds = ((paceInMinutesPerKm - paceMinutes) * 60).round();
+      paceString = '${paceMinutes}:${paceSeconds.toString().padLeft(2, '0')}';
+    }
+
+    // 格式化数据
+    final timeString = _formatTime(elapsedTime);
+    final distanceString = '${(totalDistance / 1000).toStringAsFixed(2)}';
+
+    // 绘制三列统计数据
+    final columnWidth = width / 3;
+
+    // Time 列
+    _drawStatColumn(canvas, 'Time', timeString, '', offsetX, offsetY, columnWidth);
+
+    // Distance 列
+    _drawStatColumn(
+        canvas, 'Distance', distanceString, 'km', offsetX + columnWidth, offsetY, columnWidth);
+
+    // Avg. Pace 列
+    _drawStatColumn(
+        canvas, 'Avg. Pace', paceString, 'min/km', offsetX + columnWidth * 2, offsetY, columnWidth);
+  }
+
+  /// 绘制单个统计列
+  static void _drawStatColumn(Canvas canvas, String label, String value, String unit,
+      double offsetX, double offsetY, double width) {
+    // 绘制标签 - 适应高分辨率
+    _drawCenteredText(
+      canvas,
+      label,
+      offsetX + width / 2,
+      offsetY,
+      const TextStyle(
+        fontSize: 28,
+        color: Color(0xFF6B7280),
+        fontWeight: FontWeight.w500,
+      ),
+    );
+
+    // 绘制数值 - 适应高分辨率
+    _drawCenteredText(
+      canvas,
+      value,
+      offsetX + width / 2,
+      offsetY + 60,
+      const TextStyle(
+        fontSize: 64,
+        color: Color(0xFF1F2937),
+        fontWeight: FontWeight.bold,
+      ),
+    );
+
+    // 绘制单位 - 适应高分辨率
+    if (unit.isNotEmpty) {
+      _drawCenteredText(
+        canvas,
+        unit,
+        offsetX + width / 2,
+        offsetY + 140,
+        const TextStyle(
+          fontSize: 24,
+          color: Color(0xFF6B7280),
+        ),
       );
     }
   }
 
-  /// 绘制统计信息
-  static void _drawStats(Canvas canvas, double totalDistance, int elapsedTime, double averageSpeed,
-      int calories, bool isSimulated, double offsetX, double offsetY, double width, double height) {
-    const textStyle = TextStyle(
-      color: Colors.black87,
-      fontSize: 16,
-      fontWeight: FontWeight.w500,
-    );
-
-    const titleStyle = TextStyle(
-      color: Colors.black,
-      fontSize: 18,
-      fontWeight: FontWeight.bold,
-    );
-
-    // 格式化数据
-    final distance = '${(totalDistance / 1000).toStringAsFixed(2)} km';
-    final time = _formatTime(elapsedTime);
-    final speed = '${(averageSpeed * 3.6).toStringAsFixed(1)} km/h';
-    final cal = '$calories kcal';
-
-    // 绘制统计标题
-    _drawText(canvas, '🏃‍♂️ 跑步统计', offsetX, offsetY, titleStyle);
-
-    // 绘制统计数据 (两列布局)
-    const double rowHeight = 25;
-    final double colWidth = width / 2;
-
-    _drawText(canvas, '📍 距离: $distance', offsetX, offsetY + 30, textStyle);
-    _drawText(canvas, '⏱️ 时间: $time', offsetX + colWidth, offsetY + 30, textStyle);
-    _drawText(canvas, '💨 速度: $speed', offsetX, offsetY + 30 + rowHeight, textStyle);
-    _drawText(canvas, '🔥 卡路里: $cal', offsetX + colWidth, offsetY + 30 + rowHeight, textStyle);
-
-    // 数据类型标识
-    final dataType = isSimulated ? '📱 模拟GPS数据' : '📍 真实GPS数据';
-    _drawText(canvas, dataType, offsetX, offsetY + 80,
-        textStyle.copyWith(fontSize: 14, color: Colors.grey[600]));
-  }
-
-  /// 绘制标题
-  static void _drawTitle(Canvas canvas, double width, double padding) {
-    const titleStyle = TextStyle(
-      color: Colors.black,
-      fontSize: 24,
-      fontWeight: FontWeight.bold,
-    );
-
-    _drawText(canvas, '🏃‍♂️ 跑步路径记录', padding, padding - 10, titleStyle);
-
-    // 绘制时间戳
-    final dateTime = DateTime.now();
-    final timestamp =
-        '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
-
-    const timeStyle = TextStyle(
-      color: Colors.grey,
-      fontSize: 14,
-    );
-
-    _drawText(canvas, timestamp, width - 200, padding - 10, timeStyle);
-  }
+  // 旧的绘制方法已移除，使用现代化布局
 
   /// 绘制文本
   static void _drawText(Canvas canvas, String text, double x, double y, TextStyle style) {
@@ -519,6 +711,46 @@ class RouteImageService {
     );
     textPainter.layout();
     textPainter.paint(canvas, Offset(x, y));
+  }
+
+  /// 绘制居中文本
+  static void _drawCenteredText(
+      Canvas canvas, String text, double centerX, double y, TextStyle style) {
+    final textPainter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.center,
+    );
+    textPainter.layout();
+    textPainter.paint(canvas, Offset(centerX - textPainter.width / 2, y));
+  }
+
+  /// 格式化日期时间
+  static String _formatDateTime(DateTime dateTime) {
+    final months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
+    ];
+
+    final month = months[dateTime.month - 1];
+    final day = dateTime.day;
+    final year = dateTime.year;
+    final hour = dateTime.hour;
+    final minute = dateTime.minute;
+    final ampm = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+
+    return '$month $day, $year at $displayHour:${minute.toString().padLeft(2, '0')} $ampm';
   }
 
   /// 格式化时间
