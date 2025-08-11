@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/models/user.dart';
@@ -10,7 +9,7 @@ import '../constants/app_config.dart';
 class AuthService {
   // 全局请求状态保护
   static bool _isLoginInProgress = false;
-  static bool _isRegisterInProgress = false;
+  // static bool _isRegisterInProgress = false; // 未使用，保留时会触发告警
 
   // 创建配置了代理的HTTP客户端（仅在调试模式下）
   static http.Client _createHttpClient() {
@@ -26,6 +25,9 @@ class AuthService {
 
   static const String tokenKey = 'auth_token';
   static const String userKey = 'user_data';
+  static const String rememberMeKey = 'remember_me';
+  static const String savedEmailKey = 'saved_email';
+  static const String savedPasswordKey = 'saved_password';
 
   // 发送注册验证码
   static Future<Map<String, dynamic>> sendVerificationCode(String email) async {
@@ -74,7 +76,7 @@ class AuthService {
       print('❌ Error: $e');
       print('⏰ Time: ${DateTime.now()}');
       print('========================================================');
-      
+
       return {
         'success': false,
         'message': '网络错误: $e',
@@ -499,6 +501,45 @@ class AuthService {
   static Future<void> _saveUserData(Map<String, dynamic> userData) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(userKey, jsonEncode(userData));
+  }
+
+  // 记住登录凭据
+  static Future<void> saveLoginCredentials({
+    required String email,
+    required String password,
+    required bool rememberMe,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(rememberMeKey, rememberMe);
+    if (rememberMe) {
+      await prefs.setString(savedEmailKey, email);
+      await prefs.setString(savedPasswordKey, password);
+    } else {
+      await prefs.remove(savedEmailKey);
+      await prefs.remove(savedPasswordKey);
+    }
+  }
+
+  static Future<String?> getSavedEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(savedEmailKey);
+  }
+
+  static Future<String?> getSavedPassword() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(savedPasswordKey);
+  }
+
+  static Future<bool> getRememberMe() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(rememberMeKey) ?? true;
+  }
+
+  static Future<void> clearSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(savedEmailKey);
+    await prefs.remove(savedPasswordKey);
+    await prefs.setBool(rememberMeKey, false);
   }
 }
 

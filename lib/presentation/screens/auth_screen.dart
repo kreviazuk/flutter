@@ -26,6 +26,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _loginFormKey = GlobalKey<FormState>();
   final _loginEmailController = TextEditingController();
   final _loginPasswordController = TextEditingController();
+  bool _rememberMe = true;
 
   // 注册表单 - 第一步
   final _registerStep1FormKey = GlobalKey<FormState>();
@@ -37,6 +38,26 @@ class _AuthScreenState extends State<AuthScreen> {
   final _registerPasswordController = TextEditingController();
   final _registerUsernameController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final remember = await AuthService.getRememberMe();
+    final savedEmail = await AuthService.getSavedEmail();
+    final savedPassword = await AuthService.getSavedPassword();
+    if (!mounted) return;
+    setState(() {
+      _rememberMe = remember;
+      if (remember) {
+        if (savedEmail != null) _loginEmailController.text = savedEmail;
+        if (savedPassword != null) _loginPasswordController.text = savedPassword;
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -113,6 +134,11 @@ class _AuthScreenState extends State<AuthScreen> {
       );
 
       if (result['success']) {
+        await AuthService.saveLoginCredentials(
+          email: _loginEmailController.text.trim(),
+          password: _loginPasswordController.text,
+          rememberMe: _rememberMe,
+        );
         _showMessage('登录成功！欢迎回来 🎉');
         if (mounted) {
           Navigator.of(context).pop(result['user']);
@@ -440,6 +466,22 @@ class _AuthScreenState extends State<AuthScreen> {
                             '登录',
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                           ),
+                  ),
+
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _rememberMe,
+                        onChanged: (val) {
+                          if (val == null) return;
+                          setState(() {
+                            _rememberMe = val;
+                          });
+                        },
+                      ),
+                      const Text('记住我（保存账号与密码）'),
+                    ],
                   ),
                 ],
               ),
