@@ -46,6 +46,7 @@ dependencies:
 
   # 图片选择和处理
   image_picker: ^1.0.7
+  gal: ^2.3.0
   image: ^4.1.7
 
   # 实用工具
