@@ -73,7 +73,7 @@ class _PermissionDialogState extends State<PermissionDialog> {
             Icons.security,
             color: AppColors.primary,
             size: 28,
-          ),
+          )
           SizedBox(width: 12),
           Text(
             '应用权限申请',
