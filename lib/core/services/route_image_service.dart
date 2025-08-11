@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:path_provider/path_provider.dart';
@@ -18,6 +19,7 @@ class RouteImageService {
     required double averageSpeed,
     required int calories,
     required bool isSimulated,
+    GoogleMapController? mapController,
   }) async {
     try {
       // 检查权限
@@ -33,6 +35,7 @@ class RouteImageService {
         averageSpeed: averageSpeed,
         calories: calories,
         isSimulated: isSimulated,
+        mapController: mapController,
       );
 
       if (imageBytes == null) {
@@ -320,15 +323,46 @@ class RouteImageService {
     required double averageSpeed,
     required int calories,
     required bool isSimulated,
+    GoogleMapController? mapController,
   }) async {
-    if (routePoints.isEmpty) return null;
-
     const double imageWidth = 800;
     const double imageHeight = 1200;
     const double padding = 40;
     const double mapHeight = 720;
     const double userInfoHeight = 160;
     const double statsHeight = 280;
+
+    // 获取地图截图（如果有mapController）
+    Uint8List? mapSnapshot;
+    if (mapController != null && routePoints.isNotEmpty) {
+      try {
+        print('📸 开始获取地图截图...');
+
+        // 计算路径边界
+        final bounds = _calculateBounds(routePoints);
+
+        // 设置地图视图以适合路径
+        await mapController.animateCamera(
+          CameraUpdate.newLatLngBounds(
+            LatLngBounds(
+              southwest: LatLng(bounds.minLat, bounds.minLng),
+              northeast: LatLng(bounds.maxLat, bounds.maxLng),
+            ),
+            100.0, // padding
+          ),
+        );
+
+        // 等待动画完成
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        // 截取地图
+        mapSnapshot = await mapController.takeSnapshot();
+        print('✅ 地图截图获取成功');
+      } catch (e) {
+        print('⚠️ 获取地图截图失败: $e');
+        mapSnapshot = null;
+      }
+    }
 
     // 创建图片画布
     final recorder = ui.PictureRecorder();
@@ -340,22 +374,26 @@ class RouteImageService {
       Paint()..color = const Color(0xFFF8F9FA),
     );
 
-    // 计算路径边界
-    final bounds = _calculateBounds(routePoints);
-
-    // 绘制地图区域（带圆角背景）
+    // 绘制地图区域
     final mapRect = RRect.fromRectAndRadius(
       Rect.fromLTWH(padding, padding, imageWidth - padding * 2, mapHeight),
       const Radius.circular(16),
     );
-    canvas.drawRRect(
-      mapRect,
-      Paint()..color = Colors.white,
-    );
 
-    // 绘制路径
-    _drawModernRoute(canvas, routePoints, bounds, padding + 10, padding + 10,
-        imageWidth - padding * 2 - 20, mapHeight - 20);
+    if (mapSnapshot != null) {
+      // 使用真实地图截图作为背景
+      await _drawMapSnapshot(
+          canvas, mapSnapshot, padding, padding, imageWidth - padding * 2, mapHeight);
+    } else {
+      // 使用原来的网格背景
+      canvas.drawRRect(mapRect, Paint()..color = Colors.white);
+
+      if (routePoints.isNotEmpty) {
+        final bounds = _calculateBounds(routePoints);
+        _drawModernRoute(canvas, routePoints, bounds, padding + 10, padding + 10,
+            imageWidth - padding * 2 - 20, mapHeight - 20);
+      }
+    }
 
     // 绘制用户信息
     _drawUserInfo(
@@ -371,6 +409,75 @@ class RouteImageService {
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
 
     return bytes?.buffer.asUint8List();
+  }
+
+  /// 绘制地图截图
+  static Future<void> _drawMapSnapshot(Canvas canvas, Uint8List mapSnapshot, double offsetX,
+      double offsetY, double width, double height) async {
+    try {
+      // 将地图截图转换为图像
+      final codec = await ui.instantiateImageCodec(mapSnapshot);
+      final frame = await codec.getNextFrame();
+      final mapImage = frame.image;
+
+      // 创建圆角裁剪路径
+      final clipPath = Path()
+        ..addRRect(RRect.fromRectAndRadius(
+          Rect.fromLTWH(offsetX, offsetY, width, height),
+          const Radius.circular(16),
+        ));
+
+      // 裁剪并绘制地图图像
+      canvas.save();
+      canvas.clipPath(clipPath);
+
+      // 计算缩放比例以填充整个区域
+      final scaleX = width / mapImage.width;
+      final scaleY = height / mapImage.height;
+      final scale = math.max(scaleX, scaleY);
+
+      // 计算居中偏移
+      final scaledWidth = mapImage.width * scale;
+      final scaledHeight = mapImage.height * scale;
+      final centerOffsetX = (width - scaledWidth) / 2;
+      final centerOffsetY = (height - scaledHeight) / 2;
+
+      // 绘制地图图像
+      canvas.drawImageRect(
+        mapImage,
+        Rect.fromLTWH(0, 0, mapImage.width.toDouble(), mapImage.height.toDouble()),
+        Rect.fromLTWH(offsetX + centerOffsetX, offsetY + centerOffsetY, scaledWidth, scaledHeight),
+        Paint()..filterQuality = FilterQuality.high,
+      );
+
+      canvas.restore();
+
+      // 绘制圆角边框
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(offsetX, offsetY, width, height),
+          const Radius.circular(16),
+        ),
+        Paint()
+          ..color = const Color(0xFFCBD5E1)
+          ..strokeWidth = 2
+          ..style = PaintingStyle.stroke,
+      );
+
+      print('✅ 地图截图绘制成功');
+    } catch (e) {
+      print('⚠️ 绘制地图截图失败: $e');
+
+      // 降级到网格背景
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(offsetX, offsetY, width, height),
+          const Radius.circular(16),
+        ),
+        Paint()..color = Colors.white,
+      );
+      _drawMapGrid(canvas, offsetX + 10, offsetY + 10, width - 20, height - 20);
+    }
   }
 
   /// 计算路径边界

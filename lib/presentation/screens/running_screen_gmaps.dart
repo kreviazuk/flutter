@@ -976,6 +976,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
         averageSpeed: _averageSpeed,
         calories: _calories,
         isSimulated: _isSimulateGpsEnabled,
+        mapController: _mapController,
       );
 
       // 关闭保存中对话框
