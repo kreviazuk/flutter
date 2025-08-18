@@ -750,8 +750,8 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
               // 保存路径图片
               await _saveRouteImage();
 
-              // 重置跑步数据
-              _resetRunning();
+              // 直接跳转到首页，不重置位置
+              Navigator.of(context).pop();
             },
             icon: const Icon(Icons.save_alt),
             label: Text(l10n.saveRouteImage),
@@ -759,7 +759,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              _resetRunning();
+              Navigator.of(context).pop(); // 跳转到首页
             },
             child: Text(l10n.close),
           ),
@@ -824,7 +824,10 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
         content: Text(contentText),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              Navigator.of(context).pop(); // 关闭保存结果对话框
+              Navigator.of(context).pop(); // 跳转到首页
+            },
             child: Text(l10n.close),
           ),
         ],
@@ -847,7 +850,8 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     );
   }
 
-  /// 重置跑步数据
+  /// 重置跑步数据 (保留此方法以备将来使用)
+  // ignore: unused_element
   void _resetRunning() {
     setState(() {
       _totalDistance = 0.0;
