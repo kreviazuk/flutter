@@ -371,12 +371,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gpsSettings => 'GPS Settings';
 
   @override
-  String get simulateGps => 'Simulate GPS';
-
-  @override
-  String get simulateGpsDescription => 'Enable to use simulated GPS data for running tests';
-
-  @override
   String get realGps => 'Real GPS';
 
   @override
@@ -441,9 +435,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get realDataNote => '📱 Using real GPS to track your running route';
-
-  @override
-  String get simulatedDataNote => '📱 This is simulated GPS data for testing purposes';
 
   @override
   String get startRealRun => 'Start Running';

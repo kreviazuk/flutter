@@ -7,7 +7,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import '../theme/app_colors.dart';
 import '../../l10n/app_localizations.dart';
-import '../../core/services/gps_settings_service.dart';
+
 import '../../core/services/route_image_service.dart';
 
 /// 🏃‍♂️ 跑步追踪页面 - 高帧率3D模式
@@ -42,12 +42,6 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
 
   // GPS追踪相关
   StreamSubscription<Position>? _realTimePositionSubscription;
-  bool _isSimulateGpsEnabled = false;
-
-  // 模拟GPS相关
-  Timer? _simulationTimer;
-  double _simulationAngle = 0;
-  int _simulationStep = 0;
 
   // 地图和路线数据
   final Set<Marker> _markers = {};
@@ -103,9 +97,6 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
 
   /// 初始化GPS设置和位置
   Future<void> _initializeGpsAndLocation() async {
-    // 加载GPS模拟设置
-    _isSimulateGpsEnabled = await GpsSettingsService.getSimulateGpsEnabled();
-
     // 优先使用传入的GPS位置，如果没有则使用默认位置
     if (widget.initialPosition != null) {
       // 使用真实的GPS位置
@@ -423,11 +414,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     );
 
     // 根据设置启动对应的位置追踪
-    if (_isSimulateGpsEnabled) {
-      _startSimulatedLocationTracking();
-    } else {
-      _startRealTimeLocationTracking();
-    }
+    _startRealTimeLocationTracking();
 
     // 开始计时器
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -465,61 +452,6 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
     );
   }
 
-  /// 开始模拟GPS位置追踪
-  void _startSimulatedLocationTracking() {
-    // 高帧率模式下更频繁更新位置
-    final updateInterval = _isHighFrameRate
-        ? const Duration(milliseconds: 500) // 2FPS位置更新
-        : const Duration(seconds: 1); // 1FPS位置更新
-
-    _simulationTimer = Timer.periodic(updateInterval, (timer) {
-      if (_isRunning && !_isPaused) {
-        _generateNextSimulatedPosition();
-      }
-    });
-  }
-
-  /// 生成下一个模拟位置
-  void _generateNextSimulatedPosition() {
-    if (_currentPosition == null) return;
-
-    _simulationStep++;
-
-    // 模拟更真实的跑步路径
-    double distance = 8 + math.Random().nextDouble() * 12; // 8-20米每次更新
-
-    // 更自然的方向变化
-    if (_simulationStep % (5 + math.Random().nextInt(8)) == 0) {
-      _simulationAngle += (math.Random().nextDouble() - 0.5) * math.pi / 3; // 更小的转向角度
-    }
-
-    // 计算新位置
-    double latOffset = distance * math.cos(_simulationAngle) / 111000;
-    double lonOffset = distance *
-        math.sin(_simulationAngle) /
-        (111000 * math.cos(_currentPosition!.latitude * math.pi / 180));
-
-    double newLat = _currentPosition!.latitude + latOffset;
-    double newLon = _currentPosition!.longitude + lonOffset;
-
-    // 注意：即使在模拟模式下，我们也不再使用虚拟速度
-    // 而是让 _calculateRealTimeSpeed 基于位置变化来计算真实速度
-    Position newPosition = Position(
-      latitude: newLat,
-      longitude: newLon,
-      timestamp: DateTime.now(),
-      accuracy: 2.0 + math.Random().nextDouble() * 1.0, // 2-3米精度
-      altitude: 50.0 + math.sin(_simulationStep * 0.05) * 5.0,
-      altitudeAccuracy: 2.0,
-      heading: _simulationAngle * 180 / math.pi,
-      headingAccuracy: 3.0,
-      speed: 0.0, // 不再使用虚拟速度，让计算函数处理
-      speedAccuracy: 0.3,
-    );
-
-    _updateRunningPosition(newPosition);
-  }
-
   /// 暂停跑步
   void _pauseRunning() {
     setState(() {
@@ -544,11 +476,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
       });
 
       // 根据设置恢复对应的位置追踪
-      if (_isSimulateGpsEnabled) {
-        _startSimulatedLocationTracking();
-      } else {
-        _startRealTimeLocationTracking();
-      }
+      _startRealTimeLocationTracking();
     }
 
     HapticFeedback.lightImpact();
@@ -566,7 +494,6 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
 
     _timer?.cancel();
     _realTimePositionSubscription?.cancel();
-    _simulationTimer?.cancel();
 
     // 添加结束标记
     if (_currentPosition != null) {
@@ -732,7 +659,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
                 l10n.caloriesBurned, '$_calories ${l10n.kcal}', Icons.local_fire_department),
             const SizedBox(height: 16),
             Text(
-              _isSimulateGpsEnabled ? l10n.simulatedDataNote : l10n.realDataNote,
+              l10n.realDataNote,
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[600],
@@ -979,7 +906,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
         elapsedTime: _elapsedTime,
         averageSpeed: _averageSpeed,
         calories: _calories,
-        isSimulated: _isSimulateGpsEnabled,
+        isSimulated: false,
         mapController: _mapController,
       );
 
@@ -1258,7 +1185,7 @@ class _RunningScreenGMapsState extends State<RunningScreenGMaps> with TickerProv
                 if (!_isRunning)
                   Expanded(
                     child: _buildControlButton(
-                      _isSimulateGpsEnabled ? l10n.startRunning : l10n.startRealRun,
+                      l10n.startRealRun,
                       AppColors.primary,
                       () => _startRunning(),
                       Icons.play_arrow,

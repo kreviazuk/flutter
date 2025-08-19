@@ -371,12 +371,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get gpsSettings => 'GPS设置';
 
   @override
-  String get simulateGps => '模拟GPS';
-
-  @override
-  String get simulateGpsDescription => '启用后将使用模拟GPS数据进行跑步测试';
-
-  @override
   String get realGps => '真实GPS';
 
   @override
@@ -441,9 +435,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get realDataNote => '📱 使用真实GPS追踪您的跑步路线';
-
-  @override
-  String get simulatedDataNote => '📱 这是模拟GPS数据，用于测试功能';
 
   @override
   String get startRealRun => '开始跑步';

@@ -175,8 +175,7 @@
   "languageSwitchFailed": "Language switch failed: {error}",
   
   "gpsSettings": "GPS Settings",
-  "simulateGps": "Simulate GPS",
-  "simulateGpsDescription": "Enable to use simulated GPS data for running tests",
+
   "realGps": "Real GPS",
   "realGpsDescription": "Use device's real GPS for location tracking",
   "@languageSwitchFailed": {
@@ -208,7 +207,7 @@
   "averageSpeed": "Average Speed",
   "caloriesBurned": "Calories Burned",
   "realDataNote": "📱 Using real GPS to track your running route",
-  "simulatedDataNote": "📱 This is simulated GPS data for testing purposes",
+
   "startRealRun": "Start Running",
   "continueText": "Continue",
   "calories": "Calories",

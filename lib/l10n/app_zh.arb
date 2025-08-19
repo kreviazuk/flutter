@@ -130,8 +130,7 @@
   "languageSwitchFailed": "语言切换失败: {error}",
   
   "gpsSettings": "GPS设置",
-  "simulateGps": "模拟GPS",
-  "simulateGpsDescription": "启用后将使用模拟GPS数据进行跑步测试",
+
   "realGps": "真实GPS",
   "realGpsDescription": "使用设备真实GPS进行位置追踪",
   
@@ -156,7 +155,7 @@
   "averageSpeed": "平均速度",
   "caloriesBurned": "消耗卡路里",
   "realDataNote": "📱 使用真实GPS追踪您的跑步路线",
-  "simulatedDataNote": "📱 这是模拟GPS数据，用于测试功能",
+
   "startRealRun": "开始跑步",
   "continueText": "继续",
   "calories": "卡路里",

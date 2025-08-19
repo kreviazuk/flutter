@@ -18,7 +18,6 @@ class RouteImageService {
     required int elapsedTime,
     required double averageSpeed,
     required int calories,
-    required bool isSimulated,
     GoogleMapController? mapController,
   }) async {
     try {
@@ -34,7 +33,6 @@ class RouteImageService {
         elapsedTime: elapsedTime,
         averageSpeed: averageSpeed,
         calories: calories,
-        isSimulated: isSimulated,
         mapController: mapController,
       );
 
@@ -316,7 +314,6 @@ class RouteImageService {
     required int elapsedTime,
     required double averageSpeed,
     required int calories,
-    required bool isSimulated,
     GoogleMapController? mapController,
   }) async {
     const double imageWidth = 800;
