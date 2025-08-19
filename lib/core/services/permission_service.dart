@@ -104,9 +104,10 @@ class PermissionService {
           return true;
         }
 
-        // 如果需要，尝试管理外部存储权限
-        final manageStorageResult = await Permission.manageExternalStorage.request();
-        return manageStorageResult.isGranted;
+        // 如果基础权限都被拒绝，返回false
+        // 图片保存功能会使用fallback方案
+        print('基础存储权限被拒绝，图片将保存到应用内部目录');
+        return false;
       }
 
       // iOS 默认允许

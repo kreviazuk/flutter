@@ -183,16 +183,10 @@ class RouteImageService {
           return true;
         }
 
-        // 策略3: 尝试外部存储管理权限（Android 11+）
-        try {
-          final manageStorageResult = await Permission.manageExternalStorage.request();
-          print('ManageExternalStorage permission request result: $manageStorageResult');
-
-          return manageStorageResult.isGranted;
-        } catch (e) {
-          print('ManageExternalStorage权限不可用: $e');
-          return false;
-        }
+        // 如果基础权限都被拒绝，返回false
+        // 应用会使用fallback方案保存到内部目录
+        print('基础存储权限被拒绝，将使用应用内部目录保存');
+        return false;
       } else if (Platform.isIOS) {
         final photosResult = await Permission.photos.request();
         return photosResult.isGranted;
