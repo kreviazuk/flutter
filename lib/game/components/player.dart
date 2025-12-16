@@ -1,4 +1,5 @@
 import 'package:flame/components.dart';
+import 'package:flame/effects.dart';
 import 'package:flutter/material.dart';
 import '../game_constants.dart';
 import '../geo_journey_game.dart';
@@ -254,15 +255,78 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
   }
   
   void takeDamage(int amount) {
+    if (amount <= 0) return;
+    
     healthNotifier.value = (healthNotifier.value - amount).clamp(0, 100);
+    
+    // Play "Get Hit" Animation (Squash & Flash)
+    _playHitAnimation();
+
     if (healthNotifier.value <= 0) {
       die();
     }
   }
 
+  void _playHitAnimation() {
+    // 1. Squash Effect (Flatten vertically, expand horizontally)
+    // Scale to (x: 1.5, y: 0.5) quickly, then bounce back
+    add(
+      ScaleEffect.to(
+        Vector2(1.5, 0.5), 
+        EffectController(
+          duration: 0.1, 
+          reverseDuration: 0.1,
+          curve: Curves.easeOut,
+        ),
+      ),
+    );
+    
+    // 2. Color Flash (Tint Red)
+    // We apply this to the main circle body (first child)
+    final body = children.whereType<CircleComponent>().firstOrNull;
+    if (body != null) {
+      body.add(
+        ColorEffect(
+          Colors.red,
+          EffectController(
+            duration: 0.2,
+            reverseDuration: 0.2,
+          ),
+          opacityTo: 0.8,
+        ),
+      );
+    }
+    
+    // 3. Shake Position (Jitter)
+    add(
+      MoveEffect.by(
+        Vector2(5, 0),
+        EffectController(
+          duration: 0.05,
+          reverseDuration: 0.05,
+          repeatCount: 3,
+          alternate: true,
+        ),
+      ),
+    );
+  }
+
   void die() {
      print("Player Died!");
-     gameRef.onGameOver();
+     // Death animation could be spinning and shrinking
+     add(
+       ScaleEffect.to(
+         Vector2.zero(),
+         EffectController(duration: 0.5, curve: Curves.easeInBack),
+         onComplete: () => gameRef.onGameOver(),
+       )
+     );
+     add(
+       RotateEffect.by(
+         6.28, // 360 degrees
+         EffectController(duration: 0.5),
+       )
+     );
   }
   
   void reset() {
