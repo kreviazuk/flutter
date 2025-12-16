@@ -36,6 +36,13 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
 
   Player({required Vector2 position}) : super(position: position, size: Vector2.all(GameConstants.blockSize * 0.8));
 
+  // State
+  Vector2 facing = Vector2(0, 1); // Default facing DOWN
+  
+  // Visual Components Reference
+  late PositionComponent _visualContainer;
+  late RectangleComponent _sword;
+
   @override
   void onLoad() {
     super.onLoad();
@@ -55,37 +62,194 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
     
     _gridManager = gameRef.findByKeyName('GridManager') as GridManager?;
 
-    // Visuals
-    add(CircleComponent(
+    // --- VISUALS ---
+    _visualContainer = PositionComponent(size: size, anchor: Anchor.center, position: size / 2);
+    add(_visualContainer);
+
+    // 1. Sword (Behind/Below Body?) - Let's put it on top but pivot it
+    _sword = RectangleComponent(
+      size: Vector2(size.x * 0.15, size.y * 0.7),
+      anchor: Anchor.topCenter,
+      position: size / 2, // Center of player
+      paint: Paint()..color = Colors.white,
+    );
+    // Move sword pivot to player center, then rotate visual inside? 
+    // Easier: Just place sword at offset based on facing.
+    // Let's attach sword to container and rotate container? No, body stays upright.
+    
+    // Let's just add Sword to visualContainer.
+    _visualContainer.add(_sword);
+    _updateSwordVisual();
+
+    // 2. Body (Cyan Circle)
+    _visualContainer.add(CircleComponent(
       radius: size.x / 2,
-      paint: Paint()..color = Colors.orangeAccent,
+      paint: Paint()..color = Colors.cyan,
     ));
-    add(CircleComponent(
-      radius: size.x * 0.1,
-      position: Vector2(size.x * 0.3, size.y * 0.3),
-      paint: Paint()..color = Colors.black,
-      anchor: Anchor.center,
-    ));
-    add(CircleComponent(
-      radius: size.x * 0.1,
-      position: Vector2(size.x * 0.7, size.y * 0.3),
-      paint: Paint()..color = Colors.black,
-      anchor: Anchor.center,
-    ));
+    
+    // 3. Hat (Blue Cone/Triangle) on top
+    // Draw a triangle path using CustomPainter or PolygonComponent
+    final hatPath = Path()
+      ..moveTo(size.x * 0.5, -size.y * 0.2) // Top tip
+      ..lineTo(size.x * 0.8, size.y * 0.3)
+      ..lineTo(size.x * 0.2, size.y * 0.3)
+      ..close();
+      
+    // Simple Hat using geometry or just a semi-circle
+    _visualContainer.add(
+       PolygonComponent(
+         [
+            Vector2(size.x * 0.5, 0),
+            Vector2(size.x * 0.9, size.y * 0.4),
+            Vector2(size.x * 0.1, size.y * 0.4),
+         ],
+         paint: Paint()..color = Colors.blue.shade900,
+       )
+    );
+    
+    // 4. Eyes (Directional?) - Maybe just simple eyes on the body
+     _visualContainer.add(CircleComponent(
+        radius: size.x * 0.05,
+        position: Vector2(size.x * 0.35, size.y * 0.4),
+        paint: Paint()..color = Colors.black,
+     ));
+      _visualContainer.add(CircleComponent(
+        radius: size.x * 0.05,
+        position: Vector2(size.x * 0.65, size.y * 0.4),
+        paint: Paint()..color = Colors.black,
+     ));
+  }
+  
+  void _updateSwordVisual() {
+      // Position sword based on facing
+      // Up: (0, -1), Down: (0, 1), Left: (-1, 0), Right: (1, 0)
+      
+      double angle = 0;
+      if (facing.y == 1) angle = 0; // Down (Normal)
+      else if (facing.y == -1) angle = 3.14159; // Up
+      else if (facing.x == 1) angle = -1.5708; // Right
+      else if (facing.x == -1) angle = 1.5708; // Left
+      
+      _sword.angle = angle;
+      
+      // Offset slightly to look like holding it
+      // Default (Down) -> pivot is center, blade points down.
+      // Actually my sword anchor is TopCenter. So at (0,0) it points down.
+      // Rotation happens around TopCenter.
+      
+      // Fine tune position
+      _sword.position = size / 2 + (facing * (size.x * 0.3));
   }
 
+  // New Input Handler
+  void handleInput(Vector2 direction) {
+     if (healthNotifier.value <= 0) return;
+     if (_isMoving) return; // Wait for move to finish
+     
+     // 1. Check if facing matches input
+     bool isSameDirection = (facing - direction).length < 0.1;
+     
+     if (!isSameDirection) {
+        // TURN only
+        facing = direction;
+        _updateSwordVisual();
+        return;
+     }
+     
+     // 2. Move (Player cannot move UP against gravity? User said "cannot move up")
+     if (direction.y < 0) {
+        return; 
+     }
+
+     if (_gridManager == null) return;
+     
+     // Special Rule: If pushing DOWN against a block, Attack/Dig it!
+     if (direction.y > 0 && direction.x == 0) {
+        int tx = gridX + 0;
+        int ty = gridY + 1;
+        if (_gridManager!.getBlockAt(tx, ty) != null) {
+           attack();
+           return;
+        }
+     }
+     
+     // 3. Horizontal Logic (Left / Right)
+     if (direction.y == 0) {
+         int tx = gridX + direction.x.toInt();
+         int ty = gridY + direction.y.toInt();
+         final targetBlock = _gridManager!.getBlockAt(tx, ty);
+
+         if (targetBlock != null) {
+             // Block in front. Check above it for Climb.
+             // "如果砖块顶部没有其他砖块或者有水晶，角色都可以移动到砖块上方"
+             final blockAboveTarget = _gridManager!.getBlockAt(tx, ty - 1);
+             
+             if (blockAboveTarget == null) {
+                 // No block above -> Auto Climb
+                 // We add the move to queue. _performLogicalMove will handle the Y-shift.
+                 _moveQueue.add(direction); 
+             } else {
+                 // Block above (Wall) -> Attack
+                 attack();
+             }
+             return; // Logic handled
+         }
+     }
+     
+     _moveQueue.add(direction);
+  }
+  
+  void attack() {
+     if (healthNotifier.value <= 0) return;
+     if (_isMoving) return;
+     
+     // Target coordinates
+     int tx = gridX + facing.x.toInt();
+     int ty = gridY + facing.y.toInt();
+     
+     // Attack Animation (Sword Poke)
+     _sword.add(
+       MoveEffect.by(
+         facing * 10, 
+         EffectController(duration: 0.1, reverseDuration: 0.1)
+       )
+     );
+     
+     // Logic
+     final block = _gridManager?.getBlockAt(tx, ty);
+     if (block != null) {
+        // Destroy block!
+        _gridManager?.removeBlockAt(tx, ty);
+        takeDamage(1); // Consumes health
+        
+        if (block.isLevelExit) {
+             gameRef.nextLevel();
+        }
+     }
+  }
+  
+  // Public API to request a move (Legacy/Code compat, but handleInput is main entry)
+  void move(Vector2 delta) {
+      handleInput(delta);
+  }
+  
   @override
   void update(double dt) {
-    super.update(dt);
+    super.update(dt); // Keep existing update logic forLERP
+    // ... rest of update logic from original file ...
+    // Need to preserve checks for death etc.
+    // Since I'm replacing a chunk, I must ensure I copy relevant parts back or targeting is precise.
+    
+    // NOTE: The user instruction was big, so I am replacing `onLoad` through `_startVisualMovement`.
+    // I need to paste back the `update` implementation carefully.
+    
     if (_gridManager == null) {
       final managers = gameRef.world.children.whereType<GridManager>();
       if (managers.isNotEmpty) _gridManager = managers.first;
     }
     
     // Check for death
-    if (healthNotifier.value <= 0) {
-      return;
-    }
+    if (healthNotifier.value <= 0) return;
 
     // Process Move Queue
     if (!_isMoving && _moveQueue.isNotEmpty) {
@@ -103,10 +267,11 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
         _currentLerpTime = 1.0;
         position = _targetPosition;
         
-        // Deduct health on step completion
-        if (healthNotifier.value > 0 && _lastMoveDug) {
-           takeDamage(1); 
-        }
+        // Deduct health on step completion? No, health only on eating blocks?
+        // Wait, did we change health logic? 
+        // "Health is only consumed when 'eating' (destroying) blocks, not when walking or climbing."
+        // With manual attack, moving NEVER destroys blocks. So moving NEVER consumes health.
+        // I will remove the health deduction here regardless.
       } else {
         position = _startPosition + (_targetPosition - _startPosition) * _currentLerpTime;
       }
@@ -114,137 +279,6 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
       // Gravity check (only if not moving)
        _checkGravity();
     }
-  }
-  
-  void _checkGravity() {
-    if (_gridManager == null) return;
-    
-    final int nextY = gridY + 1;
-    
-    // Check block below
-    final blockBelow = _gridManager!.getBlockAt(gridX, nextY);
-    if (blockBelow != null) return; // Supported by block
-
-    // Check crystal below
-    final crystalBelow = _gridManager!.getCrystalAt(gridX, nextY);
-    if (crystalBelow != null) {
-       // Try to collect
-       bool collected = collectCrystal(crystalBelow.gameColor, isHeart: crystalBelow.isHeart);
-       if (collected) {
-          _gridManager!.removeCrystalAt(gridX, nextY);
-       } else {
-          // Cannot collect (full bag), so treating as solid support
-          return;
-       }
-    }
-
-    if (gridY < 1000) { 
-        // Fall down
-        gridY++;
-        _lastMoveDug = false; // Falling is not digging
-        _startVisualMovement();
-    }
-  }
-
-  // Public API to request a move
-  void move(Vector2 delta) {
-    if (healthNotifier.value <= 0) return;
-    
-    // Prevent moving UP
-    if (delta.y < 0) return;
-
-    if (_gridManager == null) return;
-    
-    // Just add to queue. Logic happens in update().
-    _moveQueue.add(delta);
-  }
-  
-  // Returns true if logic resulted in a position change that needs animation
-  bool _performLogicalMove(Vector2 delta) {
-     _lastMoveDug = false;
-     int newX = gridX + delta.x.toInt();
-     int newY = gridY + delta.y.toInt();
-
-     if (newX < 0 || newX >= GameConstants.columns) return false;
-     if (newY < 0) return false;
-
-     // Check Block
-     final block = _gridManager!.getBlockAt(newX, newY);
-     if (block != null) {
-       bool climbed = false;
-       
-       // Attempt CLIMB if moving horizontally
-       if (delta.y == 0 && delta.x != 0) {
-          // Check cell ABOVE the target block
-          final int aboveY = newY - 1;
-          if (aboveY >= 0) {
-              final blockAbove = _gridManager!.getBlockAt(newX, aboveY);
-              final crystalAbove = _gridManager!.getCrystalAt(newX, aboveY);
-              
-              if (blockAbove == null) {
-                  // Space is free of blocks. Check for crystal.
-                  if (crystalAbove != null) {
-                      // Attempt to collect crystal to clear the path
-                      bool collected = collectCrystal(crystalAbove.gameColor, isHeart: crystalAbove.isHeart);
-                      if (!collected) {
-                          // Bag full, cannot climb
-                          climbed = false;
-                      } else {
-                          // Collected! Remove crystal and climb.
-                          _gridManager!.removeCrystalAt(newX, aboveY);
-                          gridX = newX;
-                          gridY = aboveY;
-                          climbed = true;
-                      }
-                  } else {
-                      // Space is completely free
-                      gridX = newX;
-                      gridY = aboveY;
-                      climbed = true;
-                  }
-              }
-          }
-       }
-
-       if (!climbed) {
-           // If we couldn't climb, we Dig/Destroy (Standard behavior)
-           
-           if (block.isLevelExit) {
-              // DIGGING BEDROCK TRIGGERS NEXT LEVEL
-              gameRef.nextLevel();
-              return true; // Move completes (level resets anyway)
-           }
-       
-           _gridManager!.removeBlockAt(newX, newY);
-           _lastMoveDug = true;
-           gridX = newX;
-           gridY = newY;
-       }
-       
-       return true;
-     } else {
-       // Check Crystal
-       final crystal = _gridManager!.getCrystalAt(newX, newY);
-       if (crystal != null) {
-         bool collected = collectCrystal(crystal.gameColor, isHeart: crystal.isHeart);
-         if (collected) {
-            _gridManager!.removeCrystalAt(newX, newY);
-         } else {
-           // Bag full - block movement
-           return false; 
-         }
-       }
-       gridX = newX;
-       gridY = newY;
-       return true;
-     }
-  }
-  
-  void _startVisualMovement() {
-      _startPosition = position.clone();
-      _targetPosition = _getPixelPosition(gridX, gridY);
-      _isMoving = true;
-      _currentLerpTime = 0;
   }
 
   bool collectCrystal(GameColor color, {bool isHeart = false}) {
@@ -277,6 +311,76 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
     return true;
   }
   
+   // Returns true if logic resulted in a position change that needs animation
+  bool _performLogicalMove(Vector2 delta) {
+     _lastMoveDug = false;
+     int newX = gridX + delta.x.toInt();
+     int newY = gridY + delta.y.toInt();
+
+     if (newX < 0 || newX >= GameConstants.columns) return false;
+     if (newY < 0) return false;
+
+     // Check Block
+     final block = _gridManager!.getBlockAt(newX, newY);
+     if (block != null) {
+       // We only reach here if handleInput decided we can CLIMB
+       // (If we were supposed to Attack, handleInput wouldn't have called this)
+       
+       bool climbed = false;
+       
+       // Attempt CLIMB if moving horizontally
+       if (delta.y == 0 && delta.x != 0) {
+          // Check cell ABOVE the target block
+          final int aboveY = newY - 1;
+          if (aboveY >= 0) {
+              final blockAbove = _gridManager!.getBlockAt(newX, aboveY);
+              final crystalAbove = _gridManager!.getCrystalAt(newX, aboveY);
+              
+              if (blockAbove == null) {
+                  // Space is free of blocks. Check for crystal.
+                  if (crystalAbove != null) {
+                      // Attempt to collect crystal to clear the path
+                      bool collected = collectCrystal(crystalAbove.gameColor, isHeart: crystalAbove.isHeart);
+                      if (collected) {
+                           _gridManager!.removeCrystalAt(newX, aboveY);
+                           gridX = newX;
+                           gridY = aboveY;
+                           climbed = true;
+                      } 
+                      // If bag full, climb fails -> returns false at end
+                  } else {
+                      // Space is completely free
+                      gridX = newX;
+                      gridY = aboveY;
+                      climbed = true;
+                  }
+              }
+          }
+       }
+
+       if (!climbed) {
+           // Blocked (Climb failed or vertical move into block)
+           return false;
+       }
+       
+       return true;
+     } else {
+       // Check Crystal
+       final crystal = _gridManager!.getCrystalAt(newX, newY);
+       if (crystal != null) {
+         bool collected = collectCrystal(crystal.gameColor, isHeart: crystal.isHeart);
+         if (collected) {
+            _gridManager!.removeCrystalAt(newX, newY);
+         } else {
+           // Bag full - block movement
+           return false; 
+         }
+       }
+       gridX = newX;
+       gridY = newY;
+       return true;
+     }
+  }  
   void takeDamage(int amount) {
     if (amount <= 0) return;
     
@@ -400,5 +504,42 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
       x * GameConstants.blockSize + GameConstants.blockSize / 2, // Center of tile
       y * GameConstants.blockSize + GameConstants.blockSize / 2, // Center of tile
     );
+  }
+  
+  void _startVisualMovement() {
+      _startPosition = position.clone();
+      _targetPosition = _getPixelPosition(gridX, gridY);
+      _isMoving = true;
+      _currentLerpTime = 0;
+  }
+  
+  void _checkGravity() {
+    if (_gridManager == null) return;
+    
+    final int nextY = gridY + 1;
+    
+    // Check block below
+    final blockBelow = _gridManager!.getBlockAt(gridX, nextY);
+    if (blockBelow != null) return; // Supported by block
+
+    // Check crystal below
+    final crystalBelow = _gridManager!.getCrystalAt(gridX, nextY);
+    if (crystalBelow != null) {
+       // Try to collect
+       bool collected = collectCrystal(crystalBelow.gameColor, isHeart: crystalBelow.isHeart);
+       if (collected) {
+          _gridManager!.removeCrystalAt(gridX, nextY);
+       } else {
+          // Cannot collect (full bag), so treating as solid support
+          return;
+       }
+    }
+
+    if (gridY < 1000) { 
+        // Fall down
+        gridY++;
+        _lastMoveDug = false; // Falling is not digging
+        _startVisualMovement();
+    }
   }
 }
