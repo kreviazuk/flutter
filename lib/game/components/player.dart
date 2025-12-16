@@ -29,6 +29,7 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
   Vector2 _startPosition = Vector2.zero();
   Vector2 _targetPosition = Vector2.zero();
   final List<Vector2> _moveQueue = [];
+  bool _lastMoveDug = false;
 
   GridManager? _gridManager;
 
@@ -102,7 +103,7 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
         position = _targetPosition;
         
         // Deduct health on step completion
-        if (healthNotifier.value > 0) {
+        if (healthNotifier.value > 0 && _lastMoveDug) {
            takeDamage(1); 
         }
       } else {
@@ -117,15 +118,30 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
   void _checkGravity() {
     if (_gridManager == null) return;
     
+    final int nextY = gridY + 1;
+    
     // Check block below
-    final blockBelow = _gridManager!.getBlockAt(gridX, gridY + 1);
-    if (blockBelow == null && gridY < 1000) { // Limit depth for safety
-      // Fall down
-      gridY++;
-      // We manually trigger visual fall by pretending it's a move?
-      // Or just start visual movement.
-      // Since gridY changed, we can just start visual movement.
-      _startVisualMovement();
+    final blockBelow = _gridManager!.getBlockAt(gridX, nextY);
+    if (blockBelow != null) return; // Supported by block
+
+    // Check crystal below
+    final crystalBelow = _gridManager!.getCrystalAt(gridX, nextY);
+    if (crystalBelow != null) {
+       // Try to collect
+       bool collected = collectCrystal(crystalBelow.gameColor);
+       if (collected) {
+          _gridManager!.removeCrystalAt(gridX, nextY);
+       } else {
+          // Cannot collect (full bag), so treating as solid support
+          return;
+       }
+    }
+
+    if (gridY < 1000) { 
+        // Fall down
+        gridY++;
+        _lastMoveDug = false; // Falling is not digging
+        _startVisualMovement();
     }
   }
 
@@ -144,6 +160,7 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
   
   // Returns true if logic resulted in a position change that needs animation
   bool _performLogicalMove(Vector2 delta) {
+     _lastMoveDug = false;
      int newX = gridX + delta.x.toInt();
      int newY = gridY + delta.y.toInt();
 
@@ -163,11 +180,27 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
               final blockAbove = _gridManager!.getBlockAt(newX, aboveY);
               final crystalAbove = _gridManager!.getCrystalAt(newX, aboveY);
               
-              if (blockAbove == null && crystalAbove == null) {
-                 // Space is free! Climb up.
-                 gridX = newX;
-                 gridY = aboveY;
-                 climbed = true;
+              if (blockAbove == null) {
+                  // Space is free of blocks. Check for crystal.
+                  if (crystalAbove != null) {
+                      // Attempt to collect crystal to clear the path
+                      bool collected = collectCrystal(crystalAbove.gameColor);
+                      if (!collected) {
+                          // Bag full, cannot climb
+                          climbed = false;
+                      } else {
+                          // Collected! Remove crystal and climb.
+                          _gridManager!.removeCrystalAt(newX, aboveY);
+                          gridX = newX;
+                          gridY = aboveY;
+                          climbed = true;
+                      }
+                  } else {
+                      // Space is completely free
+                      gridX = newX;
+                      gridY = aboveY;
+                      climbed = true;
+                  }
               }
           }
        }
@@ -175,6 +208,7 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
        if (!climbed) {
            // If we couldn't climb, we Dig/Destroy (Standard behavior)
            _gridManager!.removeBlockAt(newX, newY);
+           _lastMoveDug = true;
            gridX = newX;
            gridY = newY;
        }
