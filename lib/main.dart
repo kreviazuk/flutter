@@ -22,6 +22,27 @@ void main() {
                ),
              ),
           ),
+          'LevelComplete': (context, GeoJourneyGame game) => Center(
+             child: Material(
+               color: Colors.black87,
+               child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Level Complete!',
+                      style: TextStyle(color: Colors.greenAccent, fontSize: 40, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 20),
+                    const CircularProgressIndicator(color: Colors.white),
+                    const SizedBox(height: 20),
+                    Text(
+                      '正在进入第${game.currentLevel + 1}层...', 
+                      style: const TextStyle(color: Colors.white, fontSize: 20),
+                    ),
+                  ],
+               ),
+             ),
+          ),
         },
         initialActiveOverlays: const ['GameHud'],
       ),

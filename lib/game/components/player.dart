@@ -129,7 +129,7 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
     final crystalBelow = _gridManager!.getCrystalAt(gridX, nextY);
     if (crystalBelow != null) {
        // Try to collect
-       bool collected = collectCrystal(crystalBelow.gameColor);
+       bool collected = collectCrystal(crystalBelow.gameColor, isHeart: crystalBelow.isHeart);
        if (collected) {
           _gridManager!.removeCrystalAt(gridX, nextY);
        } else {
@@ -185,7 +185,7 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
                   // Space is free of blocks. Check for crystal.
                   if (crystalAbove != null) {
                       // Attempt to collect crystal to clear the path
-                      bool collected = collectCrystal(crystalAbove.gameColor);
+                      bool collected = collectCrystal(crystalAbove.gameColor, isHeart: crystalAbove.isHeart);
                       if (!collected) {
                           // Bag full, cannot climb
                           climbed = false;
@@ -208,6 +208,13 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
 
        if (!climbed) {
            // If we couldn't climb, we Dig/Destroy (Standard behavior)
+           
+           if (block.isLevelExit) {
+              // DIGGING BEDROCK TRIGGERS NEXT LEVEL
+              gameRef.nextLevel();
+              return true; // Move completes (level resets anyway)
+           }
+       
            _gridManager!.removeBlockAt(newX, newY);
            _lastMoveDug = true;
            gridX = newX;
@@ -219,7 +226,7 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
        // Check Crystal
        final crystal = _gridManager!.getCrystalAt(newX, newY);
        if (crystal != null) {
-         bool collected = collectCrystal(crystal.gameColor);
+         bool collected = collectCrystal(crystal.gameColor, isHeart: crystal.isHeart);
          if (collected) {
             _gridManager!.removeCrystalAt(newX, newY);
          } else {
@@ -240,16 +247,32 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
       _currentLerpTime = 0;
   }
 
-  bool collectCrystal(GameColor color) {
-    int total = inventory.values.fold(0, (sum, count) => sum + count);
-    if (total >= maxInventoryTotal) {
-      print("Bag Full!"); 
+  bool collectCrystal(GameColor color, {bool isHeart = false}) {
+    if (isHeart) {
+       // Heal Player
+       healthNotifier.value = (healthNotifier.value + 20).clamp(0, 100);
+       print("Healed +20! Health: ${healthNotifier.value}");
+       
+       // Add visual effect for healing to the body
+       final body = children.whereType<CircleComponent>().firstOrNull;
+       if (body != null) {
+           body.add(
+              ColorEffect(
+                Colors.green,
+                EffectController(duration: 0.5, alternate: true, repeatCount: 1),
+              )
+           );
+       }
+       return true; // Always collected
+    }
+  
+    if (inventory[color]! >= 5) {
       gameRef.showBagFullMessage();
-      return false;
+      return false; // Bag full
     }
     
-    inventory[color] = (inventory[color] ?? 0) + 1;
-    inventoryNotifier.value++; // Force update
+    inventory[color] = inventory[color]! + 1;
+    inventoryNotifier.value++; // Trigger update
     print("Collected ${color.name}! Total: ${inventory[color]}");
     return true;
   }
@@ -329,15 +352,39 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
      );
   }
   
-  void reset() {
-    healthNotifier.value = 100;
-    inventory.updateAll((key, value) => 0);
-    inventoryNotifier.value++;
+  void moveToStart() {
     gridX = GameConstants.columns ~/ 2;
     gridY = 0;
     position = _getPixelPosition(gridX, gridY);
     _isMoving = false;
     _moveQueue.clear();
+    _targetPosition = position.clone();
+  }
+
+  void reset() {
+    healthNotifier.value = 100;
+    inventory.updateAll((key, value) => 0);
+    inventoryNotifier.value++;
+    
+    // Reset Physics State
+    gridX = GameConstants.columns ~/ 2;
+    gridY = 0;
+    position = _getPixelPosition(gridX, gridY);
+    _isMoving = false;
+    _moveQueue.clear();
+    _targetPosition = position.clone();
+    
+    // Reset Visuals (from Death Animation)
+    scale = Vector2.all(1.0);
+    angle = 0;
+    
+    // Remove all temporary effects
+    removeAll(children.whereType<Effect>());
+    
+    // Also reset children color effects if any
+    for (final child in children) {
+       child.removeAll(child.children.whereType<Effect>());
+    }
   }
   
   void useCrystal(GameColor color) {

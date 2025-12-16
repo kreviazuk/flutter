@@ -6,11 +6,13 @@ import '../geo_journey_game.dart';
 
 class GameBlock extends PositionComponent with HasGameRef<GeoJourneyGame> {
   final GameColor gameColor;
+  final bool isLevelExit;
   
   GameBlock({
     required this.gameColor,
     required Vector2 position,
     required Vector2 size,
+    this.isLevelExit = false,
   }) : super(position: position, size: size);
 
   double fallDelay = 0.5;
@@ -31,17 +33,34 @@ class GameBlock extends PositionComponent with HasGameRef<GeoJourneyGame> {
     final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(8));
     
     // 1. Main Body Gradient (Glossy look)
-    final Paint bodyPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-           gameColor.color.withOpacity(0.8),
-           gameColor.color,
-           gameColor.color.withOpacity(0.9),
-        ],
-        stops: const [0.0, 0.5, 1.0],
-      ).createShader(rect);
+    Paint bodyPaint;
+    
+    if (isLevelExit) {
+        // Bedrock Style (Grey/Dark)
+        bodyPaint = Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+               Colors.grey.shade800,
+               Colors.grey.shade900,
+               Colors.black,
+            ],
+          ).createShader(rect);
+    } else {
+        // Normal Gem Style
+        bodyPaint = Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+               gameColor.color.withOpacity(0.8),
+               gameColor.color,
+               gameColor.color.withOpacity(0.9),
+            ],
+            stops: const [0.0, 0.5, 1.0],
+          ).createShader(rect);
+    }
 
     canvas.drawRRect(rrect, bodyPaint);
     

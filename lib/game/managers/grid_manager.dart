@@ -15,12 +15,25 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
   final Map<String, Crystal> _crystals = {};
 
   @override
-  void onLoad() {
+  Future<void> onLoad() async {
+    // Generate initial world
     _generateRows(1, 30);
   }
 
   void _generateRows(int startY, int endY) {
+    if (startY >= rowsPerLevel) return;
+
     for (int y = startY; y < endY; y++) {
+      if (y >= rowsPerLevel) {
+         // This is the "End of Level" floor.
+         // Generate a solid row of special "Bedrock/Gate" blocks.
+         for (int x = 0; x < GameConstants.columns; x++) {
+             spawnBlock(x, y, isLevelExit: true);
+         }
+         _maxGeneratedY = y + 1;
+         return; 
+      }
+      
       for (int x = 0; x < GameConstants.columns; x++) {
         spawnGameElement(x, y);
       }
@@ -28,11 +41,23 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
     _maxGeneratedY = endY;
   }
 
+  static const int rowsPerLevel = 50;
+
   @override
   void update(double dt) {
-    // Generate new rows if needed
+    // Check for Level Complete
+    if (gameRef.player.gridY > rowsPerLevel) {
+       gameRef.nextLevel();
+       return;
+    }
+  
+    // Generate new rows if needed (but handle limit)
     if (gameRef.player.gridY > _maxGeneratedY - 20) {
-      _generateRows(_maxGeneratedY, _maxGeneratedY + 20);
+      if (_maxGeneratedY < rowsPerLevel) {
+         int nextEnd = _maxGeneratedY + 20;
+         if (nextEnd > rowsPerLevel) nextEnd = rowsPerLevel; // Cap at 200
+         _generateRows(_maxGeneratedY, nextEnd);
+      }
     }
     
     // Physics Logic
@@ -149,16 +174,24 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
            // Group falls onto player -> Damage & Disappear
            gameRef.player.takeDamage(20);
            
-           // Remove blocks in the column of impact (above player)
-           int px = gameRef.player.gridX;
-           int py = gameRef.player.gridY;
-           
-           for (int k = py - 1; k >= 0; k--) {
-              if (getBlockAt(px, k) != null) {
-                removeBlockAt(px, k);
-              } else {
-                 break; 
-              }
+           // Clear ALL blocks in the column above the collision point
+           // This prevents the "piledriver" effect where remaining blocks fall one by one
+           // We take the X from the first block in the falling group
+           if (groupPoints.isNotEmpty) {
+             final int x = groupPoints.first.x;
+             // Remove everything from player's head upwards in this column
+             for (int y = gameRef.player.gridY - 1; y >= 0; y--) {
+                 if (getBlockAt(x, y) != null) {
+                    removeBlockAt(x, y);
+                 } else if (getCrystalAt(x, y) != null) {
+                    removeCrystalAt(x, y);
+                 } else {
+                    // Stop at first gap to avoid clearing floating islands way up?
+                    // Or justify clearing everything falling? 
+                    // Let's clear contiguous stack only.
+                    break;
+                 }
+             }
            }
         } else {
            // Fall
@@ -405,9 +438,16 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
   }
 
   void spawnCrystal(int x, int y) {
-    final color = GameColor.values[_random.nextInt(GameColor.values.length)];
+    // 5% chance to be a Heart Crystal (Healing)
+    bool isHeart = _random.nextDouble() < 0.05;
+    
+    final color = isHeart 
+       ? GameColor.red 
+       : GameColor.values[_random.nextInt(GameColor.values.length)];
+       
     final crystal = Crystal(
       gameColor: color,
+      isHeart: isHeart,
       position: Vector2(
         x * GameConstants.blockSize,
         y * GameConstants.blockSize,
@@ -418,12 +458,16 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
     _crystals['$x,$y'] = crystal;
   }
 
-  void spawnBlock(int x, int y) {
+  void spawnBlock(int x, int y, {bool isLevelExit = false}) {
     if (_blocks.containsKey('$x,$y')) return;
 
-    final color = GameColor.values[_random.nextInt(GameColor.values.length)];
+    final color = isLevelExit 
+       ? GameColor.values[0] // Placeolder color for bedrock
+       : GameColor.values[_random.nextInt(GameColor.values.length)];
+       
     final block = GameBlock(
       gameColor: color,
+      isLevelExit: isLevelExit,
       position: Vector2(
         x * GameConstants.blockSize,
         y * GameConstants.blockSize,
