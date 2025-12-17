@@ -41,7 +41,7 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
   
   // Visual Components Reference
   late PositionComponent _visualContainer;
-  late RectangleComponent _sword;
+  late PositionComponent _sword; // Changed to PositionComponent for compound graphics
 
   @override
   void onLoad() {
@@ -65,80 +65,127 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
     // --- VISUALS ---
     _visualContainer = PositionComponent(size: size, anchor: Anchor.center, position: size / 2);
     add(_visualContainer);
-
-    // 1. Sword (Behind/Below Body?) - Let's put it on top but pivot it
-    _sword = RectangleComponent(
-      size: Vector2(size.x * 0.15, size.y * 0.7),
-      anchor: Anchor.topCenter,
-      position: size / 2, // Center of player
-      paint: Paint()..color = Colors.white,
-    );
-    // Move sword pivot to player center, then rotate visual inside? 
-    // Easier: Just place sword at offset based on facing.
-    // Let's attach sword to container and rotate container? No, body stays upright.
     
-    // Let's just add Sword to visualContainer.
-    _visualContainer.add(_sword);
-    _updateSwordVisual();
-
-    // 2. Body (Cyan Circle)
+    // 1. Shadow (Oval at feet)
     _visualContainer.add(CircleComponent(
-      radius: size.x / 2,
-      paint: Paint()..color = Colors.cyan,
+        radius: size.x * 0.35,
+        position: Vector2(size.x * 0.5, size.y * 0.85),
+        anchor: Anchor.center,
+        paint: Paint()..color = Colors.black.withOpacity(0.3),
+        scale: Vector2(1.2, 0.4), // Flattened
+    ));
+
+
+    // 2. SWORD Container (Pivot at center of player to rotate around)
+    // We want the sword to rotate around the player's center, but be drawn slightly offset.
+    _sword = PositionComponent(
+      size: Vector2.zero(),
+      position: size / 2, 
+      anchor: Anchor.center,
+    );
+    _visualContainer.add(_sword);
+    
+    // Draw Sword Graphics inside the container (Offset from center)
+    // Blade
+    _sword.add(RectangleComponent(
+       size: Vector2(size.x * 0.1, size.y * 0.6),
+       position: Vector2(0, size.y * 0.3), // Stick out
+       anchor: Anchor.topCenter,
+       paint: Paint()..color = Colors.grey.shade300,
+    ));
+    // Hilt/Guard
+    _sword.add(RectangleComponent(
+       size: Vector2(size.x * 0.25, size.y * 0.08),
+       position: Vector2(0, size.y * 0.3),
+       anchor: Anchor.bottomCenter,
+       paint: Paint()..color = Colors.amber.shade700,
+    ));
+    // Grip
+    _sword.add(RectangleComponent(
+       size: Vector2(size.x * 0.08, size.y * 0.15),
+       position: Vector2(0, size.y * 0.22), // Further back/in hand
+       anchor: Anchor.bottomCenter,
+       paint: Paint()..color = Colors.brown.shade800,
+    ));
+
+
+    // 3. Body (Cyan Tunic)
+    _visualContainer.add(RectangleComponent(
+        size: Vector2(size.x * 0.5, size.y * 0.35),
+        position: Vector2(size.x * 0.5, size.y * 0.75),
+        anchor: Anchor.bottomCenter,
+        paint: Paint()..color = Colors.cyan.shade600,
     ));
     
-    // 3. Hat (Blue Cone/Triangle) on top
-    // Draw a triangle path using CustomPainter or PolygonComponent
-    final hatPath = Path()
-      ..moveTo(size.x * 0.5, -size.y * 0.2) // Top tip
-      ..lineTo(size.x * 0.8, size.y * 0.3)
-      ..lineTo(size.x * 0.2, size.y * 0.3)
-      ..close();
-      
-    // Simple Hat using geometry or just a semi-circle
+    // 4. Head (Skin Color)
+    _visualContainer.add(CircleComponent(
+        radius: size.x * 0.3,
+        position: Vector2(size.x * 0.5, size.y * 0.35),
+        anchor: Anchor.center,
+        paint: Paint()..color = const Color(0xFFFCD5B5), // Peach/Skin
+    ));
+    
+    // 5. Hat (Blue Cone + Brim)
+    final hatColor = Colors.blue.shade900;
+    // Brim
+    _visualContainer.add(CircleComponent(
+        radius: size.x * 0.42,
+        position: Vector2(size.x * 0.5, size.y * 0.32),
+        anchor: Anchor.center,
+        paint: Paint()..color = hatColor,
+        scale: Vector2(1, 0.3), // Flattened brim
+    ));
+    // Cone
     _visualContainer.add(
        PolygonComponent(
          [
-            Vector2(size.x * 0.5, 0),
-            Vector2(size.x * 0.9, size.y * 0.4),
-            Vector2(size.x * 0.1, size.y * 0.4),
+            Vector2(size.x * 0.5, -size.y * 0.2), // Top Tip
+            Vector2(size.x * 0.75, size.y * 0.35), 
+            Vector2(size.x * 0.25, size.y * 0.35),
          ],
-         paint: Paint()..color = Colors.blue.shade900,
+         paint: Paint()..color = hatColor,
        )
     );
     
-    // 4. Eyes (Directional?) - Maybe just simple eyes on the body
+    // 6. Eyes
      _visualContainer.add(CircleComponent(
-        radius: size.x * 0.05,
-        position: Vector2(size.x * 0.35, size.y * 0.4),
+        radius: size.x * 0.04,
+        position: Vector2(size.x * 0.4, size.y * 0.38),
         paint: Paint()..color = Colors.black,
      ));
       _visualContainer.add(CircleComponent(
-        radius: size.x * 0.05,
-        position: Vector2(size.x * 0.65, size.y * 0.4),
+        radius: size.x * 0.04,
+        position: Vector2(size.x * 0.6, size.y * 0.38),
         paint: Paint()..color = Colors.black,
      ));
+     
+    _updateSwordVisual();
   }
   
   void _updateSwordVisual() {
-      // Position sword based on facing
-      // Up: (0, -1), Down: (0, 1), Left: (-1, 0), Right: (1, 0)
+      // Directions: Up (0, -1), Down (0, 1), Left (-1, 0), Right (1, 0)
       
       double angle = 0;
       if (facing.y == 1) angle = 0; // Down (Normal)
-      else if (facing.y == -1) angle = 3.14159; // Up
-      else if (facing.x == 1) angle = -1.5708; // Right
-      else if (facing.x == -1) angle = 1.5708; // Left
+      else if (facing.y == -1) angle = 3.14159; // Up (180 deg)
+      else if (facing.x == 1) angle = -1.5708; // Right (-90 deg)
+      else if (facing.x == -1) angle = 1.5708; // Left (90 deg)
+      
+      // Since sword pivots at center (0,0 of container)
+      // Visuals are offset by y * 0.3 to stick out.
+      // Rotation:
+      // 0 (Down) -> Sticks out Down.
+      // 180 (Up) -> Sticks out Up.
+      // -90 (Right) -> Sticks out Right.
+      // 90 (Left) -> Sticks out Left.
       
       _sword.angle = angle;
       
-      // Offset slightly to look like holding it
-      // Default (Down) -> pivot is center, blade points down.
-      // Actually my sword anchor is TopCenter. So at (0,0) it points down.
-      // Rotation happens around TopCenter.
-      
-      // Fine tune position
-      _sword.position = size / 2 + (facing * (size.x * 0.3));
+      // We don't need manual positioning anymore because the container rotates!
+      // But we might want to offset the container slightly so it looks like it's in a hand.
+      // The hand is approx at center/slightly side.
+      // Let's keep it simple: Rotating around center is robust.
+      _sword.position = size / 2; 
   }
 
   // New Input Handler
