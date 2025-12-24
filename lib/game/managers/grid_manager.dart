@@ -461,15 +461,15 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
        return;
     }
 
-    // 4% chance for Brown Tough Element (Block or Crystal)
-    double toughRoll = _random.nextDouble();
-    bool isTough = (_allowedColors.length > 3) && (toughRoll < 0.04);
-    GameColor? forcedColor = isTough ? GameColor.brown : null;
-
     // 10% chance for Crystal, 90% for Block
     if (_random.nextDouble() < 0.1) {
-      spawnCrystal(x, y, colorOverride: forcedColor);
+      // Crystals are NEVER brown/tough - they always have 1 hit
+      spawnCrystal(x, y);
     } else {
+      // 4% chance for Brown Tough Block (only if level has > 3 colors)
+      double toughRoll = _random.nextDouble();
+      bool isTough = (_allowedColors.length > 3) && (toughRoll < 0.04);
+      GameColor? forcedColor = isTough ? GameColor.brown : null;
       spawnBlock(x, y, colorOverride: forcedColor);
     }
   }

@@ -72,30 +72,42 @@ class GameHud extends StatelessWidget {
         Positioned(
           top: 40,
           left: 20,
-          child: ListenableBuilder(
-            listenable: Listenable.merge([game.player.inventoryNotifier, game.player.specialInventoryNotifier]),
-            builder: (context, child) {
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Normal Crystals
-                  ...GameColor.values.map((color) {
-                    final count = game.player.inventory[color] ?? 0;
-                    if (count == 0) return const SizedBox.shrink();
-                    return _buildCrateItem(color.color, Icons.diamond, count, () => game.player.useCrystal(color));
-                  }),
-                  // Special Crystals
-                  ...[CrystalType.verticalDrill, CrystalType.aoeBlast].map((type) {
-                     final count = game.player.specialInventory[type] ?? 0;
-                     if (count == 0) return const SizedBox.shrink();
-                     return _buildCrateItem(
-                       type == CrystalType.verticalDrill ? Colors.white : Colors.amber, 
-                       type == CrystalType.verticalDrill ? Icons.south : Icons.star, 
-                       count, 
-                       () => game.player.useSpecialCrystal(type)
-                     );
-                  }),
-                ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final screenWidth = MediaQuery.of(context).size.width;
+              // Leave space for the right side panel (about 100px)
+              final maxWidth = screenWidth - 140;
+              
+              return ListenableBuilder(
+                listenable: Listenable.merge([game.player.inventoryNotifier, game.player.specialInventoryNotifier]),
+                builder: (context, child) {
+                  return SizedBox(
+                    width: maxWidth,
+                    child: Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: [
+                        // Normal Crystals
+                        ...GameColor.values.map((color) {
+                          final count = game.player.inventory[color] ?? 0;
+                          if (count == 0) return const SizedBox.shrink();
+                          return _buildCrateItem(color.color, Icons.diamond, count, () => game.player.useCrystal(color));
+                        }),
+                        // Special Crystals
+                        ...[CrystalType.verticalDrill, CrystalType.aoeBlast].map((type) {
+                           final count = game.player.specialInventory[type] ?? 0;
+                           if (count == 0) return const SizedBox.shrink();
+                           return _buildCrateItem(
+                             type == CrystalType.verticalDrill ? Colors.white : Colors.amber, 
+                             type == CrystalType.verticalDrill ? Icons.south : Icons.star, 
+                             count, 
+                             () => game.player.useSpecialCrystal(type)
+                           );
+                        }),
+                      ],
+                    ),
+                  );
+                },
               );
             },
           ),
@@ -179,20 +191,32 @@ class GameHud extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 5),
-        padding: const EdgeInsets.all(8),
+        width: 44,
+        height: 44,
+        margin: const EdgeInsets.all(2),
         decoration: BoxDecoration(
           color: Colors.black54,
           border: Border.all(color: color, width: 2),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(6),
         ),
-        child: Row(
+        child: Stack(
+          clipBehavior: Clip.none,
           children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(width: 4),
-            Text(
-              '$count',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            Center(child: Icon(icon, color: color, size: 24)),
+            Positioned(
+              right: -4,
+              bottom: -4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Colors.black87,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  '$count',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+              ),
             ),
           ],
         ),
