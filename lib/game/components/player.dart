@@ -588,7 +588,7 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
       if (type == CrystalType.verticalDrill) {
         _gridManager?.clearVerticalColumn(gridX, gridY + 1, 20);
       } else if (type == CrystalType.aoeBlast) {
-        _gridManager?.clearArea(gridX, gridY, 3);
+        _gridManager?.clearArea(gridX, gridY, 2);
       }
     }
   }

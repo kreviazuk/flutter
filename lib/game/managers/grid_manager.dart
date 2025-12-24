@@ -463,7 +463,7 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
 
     // 4% chance for Brown Tough Element (Block or Crystal)
     double toughRoll = _random.nextDouble();
-    bool isTough = toughRoll < 0.04;
+    bool isTough = (_allowedColors.length > 3) && (toughRoll < 0.04);
     GameColor? forcedColor = isTough ? GameColor.brown : null;
 
     // 10% chance for Crystal, 90% for Block
@@ -579,6 +579,14 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
     for (int i = 0; i < count; i++) {
       int targetY = startY + i;
       if (targetY >= _maxGeneratedY) break;
+      
+      final block = getBlockAt(x, targetY);
+      if (block != null && block.isLevelExit) {
+        // Bedrock found. Stop or skip? 
+        // User says "let the user break it themselves", so we skip removing it.
+        continue; 
+      }
+      
       removeBlockAt(x, targetY);
       removeCrystalAt(x, targetY);
     }
@@ -590,6 +598,9 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
         if (x < 0 || x >= GameConstants.columns) continue;
         if (y < 0 || y >= _maxGeneratedY) continue;
         
+        final block = getBlockAt(x, y);
+        if (block != null && block.isLevelExit) continue;
+
         removeBlockAt(x, y);
         removeCrystalAt(x, y);
       }
