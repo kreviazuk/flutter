@@ -593,6 +593,25 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
     }
   }
 
+  void debugCheat() {
+    // Add 1 of every color
+    for (var color in GameColor.values) {
+       inventory[color] = (inventory[color] ?? 0) + 1;
+    }
+    // Add specials
+    specialInventory[CrystalType.verticalDrill] = (specialInventory[CrystalType.verticalDrill] ?? 0) + 1;
+    specialInventory[CrystalType.aoeBlast] = (specialInventory[CrystalType.aoeBlast] ?? 0) + 1;
+    
+    // Recalculate totals for consistency
+    int specialCount = specialInventory.values.fold(0, (sum, c) => sum + c);
+    int normalCount = inventory.values.fold(0, (sum, c) => sum + c);
+    
+    specialInventoryNotifier.value = specialCount;
+    inventoryNotifier.value = specialCount + normalCount;
+    
+    print("Debug Cheat Activated: Inventory Filled!");
+  }
+
   Vector2 _getPixelPosition(int x, int y) {
     return Vector2(
       x * GameConstants.blockSize + GameConstants.blockSize / 2, // Center of tile

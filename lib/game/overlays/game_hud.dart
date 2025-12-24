@@ -155,6 +155,22 @@ class GameHud extends StatelessWidget {
               ),
            ),
         ),
+        
+        // Debug Button
+        Positioned(
+          top: 150,
+          right: 20,
+          child: Column(
+             children: [
+                IconButton(
+                  onPressed: () => game.player.debugCheat(),
+                  icon: const Icon(Icons.bug_report, color: Colors.greenAccent, size: 30),
+                  style: IconButton.styleFrom(backgroundColor: Colors.black54),
+                ),
+                const Text("Cheat", style: TextStyle(color: Colors.white, fontSize: 10)),
+             ],
+          ),
+        ),
       ],
     );
   }
