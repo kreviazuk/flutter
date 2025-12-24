@@ -21,10 +21,10 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
   }
 
   void _generateRows(int startY, int endY) {
-    if (startY >= rowsPerLevel) return;
+    if (startY > rowsPerLevel) return;
 
     for (int y = startY; y < endY; y++) {
-      if (y >= rowsPerLevel) {
+      if (y == rowsPerLevel) {
          // This is the "End of Level" floor.
          // Generate a solid row of special "Bedrock/Gate" blocks.
          for (int x = 0; x < GameConstants.columns; x++) {
@@ -45,17 +45,11 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
 
   @override
   void update(double dt) {
-    // Check for Level Complete
-    if (gameRef.player.gridY > rowsPerLevel) {
-       gameRef.nextLevel();
-       return;
-    }
-  
     // Generate new rows if needed (but handle limit)
     if (gameRef.player.gridY > _maxGeneratedY - 20) {
-      if (_maxGeneratedY < rowsPerLevel) {
+      if (_maxGeneratedY <= rowsPerLevel) {
          int nextEnd = _maxGeneratedY + 20;
-         if (nextEnd > rowsPerLevel) nextEnd = rowsPerLevel; // Cap at 200
+         if (nextEnd > rowsPerLevel + 1) nextEnd = rowsPerLevel + 1; 
          _generateRows(_maxGeneratedY, nextEnd);
       }
     }
@@ -182,7 +176,7 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
              // Remove everything from player's head upwards in this column
              for (int y = gameRef.player.gridY - 1; y >= 0; y--) {
                  if (getBlockAt(x, y) != null) {
-                    removeBlockAt(x, y);
+                    removeBlockAt(x, y, awardScore: false);
                  } else if (getCrystalAt(x, y) != null) {
                     removeCrystalAt(x, y);
                  } else {
@@ -216,20 +210,42 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
       }
     }
 
-    // 2. Process Crystals (Simple Physics loop for loose crystals)
+    // 2. Process Crystals (Enhanced Physics with delay)
     for (int y = _maxGeneratedY - 1; y >= 0; y--) {
        for (int x = 0; x < GameConstants.columns; x++) {
           final crystal = getCrystalAt(x, y);
-          if (crystal != null) {
-             if (gameRef.player.gridX == x && gameRef.player.gridY == y + 1) {
-                 if (gameRef.player.collectCrystal(crystal.gameColor)) {
-                    removeCrystalAt(x, y); 
-                 }
-                 moved = true; 
-             } else if (getBlockAt(x, y + 1) == null && getCrystalAt(x, y + 1) == null && (y + 1 < _maxGeneratedY)) {
-                 _moveCrystal(crystal, x, y, x, y + 1);
-                 moved = true;
-             }
+          if (crystal == null) continue;
+
+          bool isSupported = false;
+          bool hitsPlayer = false;
+
+          final targetY = y + 1;
+          if (targetY >= _maxGeneratedY) {
+            isSupported = true;
+          } else {
+            if (gameRef.player.gridX == x && gameRef.player.gridY == targetY) {
+              hitsPlayer = true;
+            } else if (getBlockAt(x, targetY) != null || getCrystalAt(x, targetY) != null) {
+              isSupported = true;
+            }
+          }
+
+          if (!isSupported) {
+            crystal.startShake(dt);
+            if (crystal.fallDelay <= 0) {
+              if (hitsPlayer) {
+                // Hits player: Collect normally NO damage
+                if (gameRef.player.collectCrystal(crystal)) {
+                  removeCrystalAt(x, y);
+                }
+              } else {
+                // Normal fall
+                _moveCrystal(crystal, x, y, x, targetY);
+                moved = true;
+              }
+            }
+          } else {
+            crystal.resetShake();
           }
        }
     }
@@ -429,25 +445,39 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
        return;
     }
 
+    // 4% chance for Brown Tough Element (Block or Crystal)
+    double toughRoll = _random.nextDouble();
+    bool isTough = toughRoll < 0.04;
+    GameColor? forcedColor = isTough ? GameColor.brown : null;
+
     // 10% chance for Crystal, 90% for Block
     if (_random.nextDouble() < 0.1) {
-      spawnCrystal(x, y);
+      spawnCrystal(x, y, colorOverride: forcedColor);
     } else {
-      spawnBlock(x, y);
+      spawnBlock(x, y, colorOverride: forcedColor);
     }
   }
 
-  void spawnCrystal(int x, int y) {
-    // 5% chance to be a Heart Crystal (Healing)
-    bool isHeart = _random.nextDouble() < 0.05;
+  void spawnCrystal(int x, int y, {GameColor? colorOverride}) {
+    // Randomly decide crystal type
+    double roll = _random.nextDouble();
+    CrystalType type = CrystalType.normal;
     
-    final color = isHeart 
+    if (roll < 0.05) {
+      type = CrystalType.heart;
+    } else if (roll < 0.08) {
+      type = CrystalType.verticalDrill;
+    } else if (roll < 0.11) {
+      type = CrystalType.aoeBlast;
+    }
+
+    final color = colorOverride ?? (type == CrystalType.heart 
        ? GameColor.red 
-       : GameColor.values[_random.nextInt(GameColor.values.length)];
+       : GameColor.values[_random.nextInt(GameColor.values.length - 1)]);
        
     final crystal = Crystal(
       gameColor: color,
-      isHeart: isHeart,
+      type: type,
       position: Vector2(
         x * GameConstants.blockSize,
         y * GameConstants.blockSize,
@@ -458,12 +488,12 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
     _crystals['$x,$y'] = crystal;
   }
 
-  void spawnBlock(int x, int y, {bool isLevelExit = false}) {
+  void spawnBlock(int x, int y, {bool isLevelExit = false, GameColor? colorOverride}) {
     if (_blocks.containsKey('$x,$y')) return;
 
-    final color = isLevelExit 
+    final color = colorOverride ?? (isLevelExit 
        ? GameColor.values[0] // Placeolder color for bedrock
-       : GameColor.values[_random.nextInt(GameColor.values.length)];
+       : GameColor.values[_random.nextInt(GameColor.values.length - 1)]);
        
     final block = GameBlock(
       gameColor: color,
@@ -486,11 +516,14 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
     return _crystals['$x,$y'];
   }
 
-  void removeBlockAt(int x, int y) {
+  void removeBlockAt(int x, int y, {bool awardScore = true}) {
     final block = _blocks['$x,$y'];
     if (block != null) {
       gameRef.world.remove(block);
       _blocks.remove('$x,$y');
+      if (awardScore) {
+         gameRef.player.scoreNotifier.value++;
+      }
     }
   }
 
@@ -513,6 +546,7 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
         if (viewport.contains(block.position.toOffset())) {
            gameRef.world.remove(block);
            keysToRemove.add(key);
+           gameRef.player.scoreNotifier.value++;
         }
       }
     });
@@ -522,7 +556,51 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
     }
     
     // Trigger physics check immediately to handle floating blocks
-    // Just reset timer effectively or force a check next frame?
-    // Gravity loop will handle it naturally on next update.
+    _gravityTimer = _gravityStep; // Force check next frame
+  }
+
+  void clearVerticalColumn(int x, int startY, int count) {
+    for (int i = 0; i < count; i++) {
+      int targetY = startY + i;
+      if (targetY >= _maxGeneratedY) break;
+      removeBlockAt(x, targetY);
+      removeCrystalAt(x, targetY);
+    }
+  }
+
+  void clearArea(int centerX, int centerY, int radius) {
+    for (int y = centerY - radius; y <= centerY + radius; y++) {
+      for (int x = centerX - radius; x <= centerX + radius; x++) {
+        if (x < 0 || x >= GameConstants.columns) continue;
+        if (y < 0 || y >= _maxGeneratedY) continue;
+        
+        removeBlockAt(x, y);
+        removeCrystalAt(x, y);
+      }
+    }
+  }
+
+  void damageElementAt(int x, int y) {
+    final block = getBlockAt(x, y);
+    if (block != null) {
+      if (block.hit()) {
+        removeBlockAt(x, y);
+        if (block.isLevelExit) {
+          gameRef.nextLevel();
+        }
+      }
+      return;
+    }
+
+    final crystal = getCrystalAt(x, y);
+    if (crystal != null) {
+      if (crystal.health > 1) {
+         if (crystal.hit()) {
+            if (gameRef.player.collectCrystal(crystal)) {
+               removeCrystalAt(x, y);
+            }
+         }
+      }
+    }
   }
 }

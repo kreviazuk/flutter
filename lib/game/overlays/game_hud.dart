@@ -2,6 +2,8 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import '../geo_journey_game.dart';
 import '../game_colors.dart';
+import '../components/crystal.dart';
+import 'package:flutter/foundation.dart';
 
 class GameHud extends StatelessWidget {
   final GeoJourneyGame game;
@@ -39,6 +41,29 @@ class GameHud extends StatelessWidget {
                    );
                  },
                ),
+               const SizedBox(height: 10),
+               // Score
+               ValueListenableBuilder<int>(
+                 valueListenable: game.player.scoreNotifier,
+                 builder: (context, value, child) {
+                    return Row(
+                         mainAxisSize: MainAxisSize.min,
+                         children: [
+                             const Icon(Icons.stars, color: Colors.yellow, size: 28),
+                             const SizedBox(width: 4),
+                             Text(
+                               '$value',
+                               style: const TextStyle(
+                                  color: Colors.yellow, 
+                                  fontSize: 24, 
+                                  fontWeight: FontWeight.bold,
+                                  shadows: [Shadow(color: Colors.black, blurRadius: 4)]
+                               ),
+                             )
+                         ]
+                    );
+                 }
+               ),
             ],
           ),
         ),
@@ -47,37 +72,30 @@ class GameHud extends StatelessWidget {
         Positioned(
           top: 40,
           left: 20,
-          // right: 0, // Remove right anchor to avoid conflict with health
-          child: ValueListenableBuilder<int>(
-            valueListenable: game.player.inventoryNotifier,
-            builder: (context, value, child) {
+          child: ListenableBuilder(
+            listenable: Listenable.merge([game.player.inventoryNotifier, game.player.specialInventoryNotifier]),
+            builder: (context, child) {
               return Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: GameColor.values.map((color) {
-                  final count = game.player.inventory[color] ?? 0;
-                  return GestureDetector(
-                    onTap: () => game.player.useCrystal(color),
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 5),
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        border: Border.all(color: color.color, width: 2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.diamond, color: color.color, size: 20),
-                          const SizedBox(width: 4),
-                          Text(
-                            '$count',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
+                children: [
+                  // Normal Crystals
+                  ...GameColor.values.map((color) {
+                    final count = game.player.inventory[color] ?? 0;
+                    if (count == 0) return const SizedBox.shrink();
+                    return _buildCrateItem(color.color, Icons.diamond, count, () => game.player.useCrystal(color));
+                  }),
+                  // Special Crystals
+                  ...[CrystalType.verticalDrill, CrystalType.aoeBlast].map((type) {
+                     final count = game.player.specialInventory[type] ?? 0;
+                     if (count == 0) return const SizedBox.shrink();
+                     return _buildCrateItem(
+                       type == CrystalType.verticalDrill ? Colors.white : Colors.amber, 
+                       type == CrystalType.verticalDrill ? Icons.south : Icons.star, 
+                       count, 
+                       () => game.player.useSpecialCrystal(type)
+                     );
+                  }),
+                ],
               );
             },
           ),
@@ -138,6 +156,31 @@ class GameHud extends StatelessWidget {
            ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCrateItem(Color color, IconData icon, int count, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 5),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.black54,
+          border: Border.all(color: color, width: 2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 4),
+            Text(
+              '$count',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

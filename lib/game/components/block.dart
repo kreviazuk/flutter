@@ -8,14 +8,18 @@ class GameBlock extends PositionComponent with HasGameRef<GeoJourneyGame> {
   final GameColor gameColor;
   final bool isLevelExit;
   
+  late int health;
+  
   GameBlock({
     required this.gameColor,
     required Vector2 position,
     required Vector2 size,
     this.isLevelExit = false,
-  }) : super(position: position, size: size);
+  }) : super(position: position, size: size) {
+    health = (gameColor == GameColor.brown) ? 5 : 1;
+  }
 
-  double fallDelay = 0.5;
+  double fallDelay = 1.0;
   bool _isShaking = false;
   double _shakeTimer = 0;
 
@@ -88,8 +92,12 @@ class GameBlock extends PositionComponent with HasGameRef<GeoJourneyGame> {
     canvas.drawPath(glossPath, Paint()..color = Colors.white.withOpacity(0.3));
     canvas.restore();
 
-    // 4. Crescent Moon
-    _drawMoon(canvas, rect);
+    // 4. Decoration
+    if (gameColor == GameColor.brown) {
+      _drawNumber(canvas, rect);
+    } else {
+      _drawMoon(canvas, rect);
+    }
     
     if (_isShaking) {
       canvas.restore();
@@ -128,6 +136,34 @@ class GameBlock extends PositionComponent with HasGameRef<GeoJourneyGame> {
 
   void resetShake() {
     _isShaking = false;
-    fallDelay = 0.5;
+    fallDelay = 2.0;
+  }
+
+  void _drawNumber(Canvas canvas, Rect rect) {
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: '$health',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: rect.width * 0.6,
+          fontWeight: FontWeight.bold,
+          shadows: [
+            Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 4),
+          ],
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas, 
+      rect.center - Offset(textPainter.width / 2, textPainter.height / 2),
+    );
+  }
+
+  bool hit() {
+    health--;
+    if (health <= 0) return true;
+    return false;
   }
 }

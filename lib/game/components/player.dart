@@ -5,6 +5,7 @@ import '../game_constants.dart';
 import '../geo_journey_game.dart';
 import '../managers/grid_manager.dart';
 import '../game_colors.dart';
+import 'crystal.dart';
 
 enum PlayerState { idle, moving, falling, digging }
 
@@ -18,10 +19,18 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
   final Map<GameColor, int> inventory = {
     for (var color in GameColor.values) color: 0
   };
+  final Map<CrystalType, int> specialInventory = {
+    CrystalType.verticalDrill: 0,
+    CrystalType.aoeBlast: 0,
+  };
   final ValueNotifier<int> inventoryNotifier = ValueNotifier(0);
+  final ValueNotifier<int> specialInventoryNotifier = ValueNotifier(0);
   
   // Health
   final ValueNotifier<int> healthNotifier = ValueNotifier(100);
+  
+  // Score
+  final ValueNotifier<int> scoreNotifier = ValueNotifier(0);
 
   // Movement smoothing
   final double moveSpeed = 5.0; // grid cells per second
@@ -230,15 +239,16 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
              // Block in front. Check above it for Climb.
              // "如果砖块顶部没有其他砖块或者有水晶，角色都可以移动到砖块上方"
              final blockAboveTarget = _gridManager!.getBlockAt(tx, ty - 1);
-             
-             if (blockAboveTarget == null) {
-                 // No block above -> Auto Climb
-                 // We add the move to queue. _performLogicalMove will handle the Y-shift.
-                 _moveQueue.add(direction); 
-             } else {
-                 // Block above (Wall) -> Attack
-                 attack();
-             }
+              // No block above target. Now check headspace (above player).
+              final blockAbovePlayer = _gridManager!.getBlockAt(gridX, gridY - 1);
+              
+              if (blockAboveTarget == null && blockAbovePlayer == null) {
+                  // Both path and headspace are clear -> Auto Climb
+                  _moveQueue.add(direction); 
+              } else {
+                  // Blocked either at target height or above head -> Attack
+                  attack();
+              }
              return; // Logic handled
          }
      }
@@ -263,16 +273,8 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
      );
      
      // Logic
-     final block = _gridManager?.getBlockAt(tx, ty);
-     if (block != null) {
-        // Destroy block!
-        _gridManager?.removeBlockAt(tx, ty);
-        takeDamage(1); // Consumes health
-        
-        if (block.isLevelExit) {
-             gameRef.nextLevel();
-        }
-     }
+     _gridManager?.damageElementAt(tx, ty);
+     takeDamage(1); 
   }
   
   // Public API to request a move (Legacy/Code compat, but handleInput is main entry)
@@ -328,33 +330,47 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
     }
   }
 
-  bool collectCrystal(GameColor color, {bool isHeart = false}) {
-    if (isHeart) {
+  bool collectCrystal(Crystal crystal) {
+    if (crystal.type == CrystalType.heart) {
        // Heal Player
        healthNotifier.value = (healthNotifier.value + 20).clamp(0, 100);
        print("Healed +20! Health: ${healthNotifier.value}");
        
-       // Add visual effect for healing to the body
-       final body = children.whereType<CircleComponent>().firstOrNull;
-       if (body != null) {
-           body.add(
-              ColorEffect(
-                Colors.green,
-                EffectController(duration: 0.5, alternate: true, repeatCount: 1),
-              )
-           );
+       // Add visual effect for healing to visible parts
+       for (final child in _visualContainer.children) {
+           if (child is ShapeComponent) {
+               child.add(
+                  ColorEffect(
+                    Colors.green,
+                    EffectController(duration: 0.5, alternate: true, repeatCount: 1),
+                    opacityTo: 0.5,
+                  )
+               );
+           }
        }
-       return true; // Always collected
+       return true; 
+    }
+
+    if (crystal.type == CrystalType.verticalDrill || crystal.type == CrystalType.aoeBlast) {
+       if (inventoryNotifier.value >= maxInventoryTotal) {
+          gameRef.showBagFullMessage();
+          return false;
+       }
+       specialInventory[crystal.type] = (specialInventory[crystal.type] ?? 0) + 1;
+       inventoryNotifier.value++; 
+       specialInventoryNotifier.value++;
+       print("Collected Special Item: ${crystal.type.name}!");
+       return true;
     }
   
-    if (inventory[color]! >= 5) {
+    if (inventoryNotifier.value >= maxInventoryTotal) {
       gameRef.showBagFullMessage();
       return false; // Bag full
     }
     
-    inventory[color] = inventory[color]! + 1;
+    inventory[crystal.gameColor] = inventory[crystal.gameColor]! + 1;
     inventoryNotifier.value++; // Trigger update
-    print("Collected ${color.name}! Total: ${inventory[color]}");
+    print("Collected ${crystal.gameColor.name}! Total: ${inventory[crystal.gameColor]}");
     return true;
   }
   
@@ -376,18 +392,26 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
        bool climbed = false;
        
        // Attempt CLIMB if moving horizontally
-       if (delta.y == 0 && delta.x != 0) {
-          // Check cell ABOVE the target block
-          final int aboveY = newY - 1;
-          if (aboveY >= 0) {
+        if (delta.y == 0 && delta.x != 0) {
+           // Check headspace before climbing
+           final blockAbovePlayer = _gridManager!.getBlockAt(gridX, gridY - 1);
+           if (blockAbovePlayer != null) return false;
+
+           // Check cell ABOVE the target block
+           final int aboveY = newY - 1;
+           if (aboveY >= 0) {
               final blockAbove = _gridManager!.getBlockAt(newX, aboveY);
               final crystalAbove = _gridManager!.getCrystalAt(newX, aboveY);
               
               if (blockAbove == null) {
                   // Space is free of blocks. Check for crystal.
                   if (crystalAbove != null) {
+                      if (crystalAbove.health > 1) {
+                         // Tough crystal blocks climbing
+                         return false; 
+                      }
                       // Attempt to collect crystal to clear the path
-                      bool collected = collectCrystal(crystalAbove.gameColor, isHeart: crystalAbove.isHeart);
+                      bool collected = collectCrystal(crystalAbove);
                       if (collected) {
                            _gridManager!.removeCrystalAt(newX, aboveY);
                            gridX = newX;
@@ -413,12 +437,13 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
        return true;
      } else {
        // Check Crystal
-       final crystal = _gridManager!.getCrystalAt(newX, newY);
-       if (crystal != null) {
-         bool collected = collectCrystal(crystal.gameColor, isHeart: crystal.isHeart);
-         if (collected) {
-            _gridManager!.removeCrystalAt(newX, newY);
-         } else {
+        final crystal = _gridManager!.getCrystalAt(newX, newY);
+        if (crystal != null) {
+          if (crystal.health > 1) return false;
+          bool collected = collectCrystal(crystal);
+          if (collected) {
+             _gridManager!.removeCrystalAt(newX, newY);
+          } else {
            // Bag full - block movement
            return false; 
          }
@@ -515,7 +540,9 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
   void reset() {
     healthNotifier.value = 100;
     inventory.updateAll((key, value) => 0);
-    inventoryNotifier.value++;
+    specialInventory.updateAll((key, value) => 0);
+    inventoryNotifier.value = 0;
+    specialInventoryNotifier.value = 0;
     
     // Reset Physics State
     gridX = GameConstants.columns ~/ 2;
@@ -541,8 +568,22 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
   void useCrystal(GameColor color) {
     if ((inventory[color] ?? 0) > 0) {
       inventory[color] = inventory[color]! - 1;
-      inventoryNotifier.value++;
+      inventoryNotifier.value--;
       _gridManager?.removeAllBlocksOfColor(color);
+    }
+  }
+
+  void useSpecialCrystal(CrystalType type) {
+    if ((specialInventory[type] ?? 0) > 0) {
+      specialInventory[type] = specialInventory[type]! - 1;
+      inventoryNotifier.value--;
+      specialInventoryNotifier.value--;
+
+      if (type == CrystalType.verticalDrill) {
+        _gridManager?.clearVerticalColumn(gridX, gridY + 1, 20);
+      } else if (type == CrystalType.aoeBlast) {
+        _gridManager?.clearArea(gridX, gridY, 3);
+      }
     }
   }
 
@@ -572,8 +613,9 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
     // Check crystal below
     final crystalBelow = _gridManager!.getCrystalAt(gridX, nextY);
     if (crystalBelow != null) {
+       if (crystalBelow.health > 1) return; // Supported by tough crystal
        // Try to collect
-       bool collected = collectCrystal(crystalBelow.gameColor, isHeart: crystalBelow.isHeart);
+       bool collected = collectCrystal(crystalBelow);
        if (collected) {
           _gridManager!.removeCrystalAt(gridX, nextY);
        } else {
