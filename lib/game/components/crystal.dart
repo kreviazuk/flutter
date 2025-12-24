@@ -24,7 +24,7 @@ class Crystal extends PositionComponent {
      health = (gameColor == GameColor.brown) ? 5 : 1;
   }
 
-  double fallDelay = 0.5; // Same as block now
+  double fallDelay = 1.0; // Same as block now
   bool _isShaking = false;
 
   @override
@@ -97,7 +97,7 @@ class Crystal extends PositionComponent {
 
   void resetShake() {
     _isShaking = false;
-    fallDelay = 0.5;
+    fallDelay = 1.0;
   }
   // Helper for backward compatibility or simple checks
   bool get isHeart => type == CrystalType.heart;
