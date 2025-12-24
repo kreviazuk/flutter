@@ -19,7 +19,7 @@ class GameBlock extends PositionComponent with HasGameRef<GeoJourneyGame> {
     health = (gameColor == GameColor.brown) ? 5 : 1;
   }
 
-  double fallDelay = 1.0;
+  double fallDelay = 0.5;
   bool _isShaking = false;
   double _shakeTimer = 0;
 
@@ -136,7 +136,7 @@ class GameBlock extends PositionComponent with HasGameRef<GeoJourneyGame> {
 
   void resetShake() {
     _isShaking = false;
-    fallDelay = 2.0;
+    fallDelay = 0.5;
   }
 
   void _drawNumber(Canvas canvas, Rect rect) {

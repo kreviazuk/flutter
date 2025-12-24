@@ -40,6 +40,9 @@ class GeoJourneyGame extends FlameGame {
     // We manually update camera in the update loop to lock X axis
     camera.viewfinder.position = Vector2(size.x / 2, 0);
     camera.stop(); 
+    
+    // FPS Counter
+    add(FpsTextComponent(position: Vector2(10, 50), scale: Vector2.all(1.2)));
   }
 
   @override
