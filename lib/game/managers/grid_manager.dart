@@ -13,11 +13,26 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
   int _maxGeneratedY = 0;
   final Map<String, GameBlock> _blocks = {};
   final Map<String, Crystal> _crystals = {};
+  List<GameColor> _allowedColors = [];
 
   @override
   Future<void> onLoad() async {
+    _updateLevelVariety();
     // Generate initial world
     _generateRows(1, 30);
+  }
+
+  void _updateLevelVariety() {
+    // Standard pool is the first 7 colors (Red-Purple)
+    // We pick 4-7 colors from this set for variety this level
+    final standardColors = GameColor.values.sublist(0, GameColor.values.length - 1);
+    standardColors.shuffle(_random);
+    
+    int count = 4 + _random.nextInt(4); // 4, 5, 6, or 7
+    if (count > standardColors.length) count = standardColors.length;
+    
+    _allowedColors = standardColors.sublist(0, count);
+    print("Level Variety: $count colors chosen: ${_allowedColors.map((c) => c.name).join(', ')}");
   }
 
   void _generateRows(int startY, int endY) {
@@ -69,6 +84,7 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
     gameRef.world.children.whereType<Crystal>().forEach((c) => c.removeFromParent());
     
     _maxGeneratedY = 0;
+    _updateLevelVariety();
     _generateRows(1, 30);
   }
 
@@ -473,7 +489,7 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
 
     final color = colorOverride ?? (type == CrystalType.heart 
        ? GameColor.red 
-       : GameColor.values[_random.nextInt(GameColor.values.length - 1)]);
+       : _allowedColors[_random.nextInt(_allowedColors.length)]);
        
     final crystal = Crystal(
       gameColor: color,
@@ -493,7 +509,7 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
 
     final color = colorOverride ?? (isLevelExit 
        ? GameColor.values[0] // Placeolder color for bedrock
-       : GameColor.values[_random.nextInt(GameColor.values.length - 1)]);
+       : _allowedColors[_random.nextInt(_allowedColors.length)]);
        
     final block = GameBlock(
       gameColor: color,

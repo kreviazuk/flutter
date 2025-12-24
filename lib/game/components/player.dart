@@ -212,18 +212,19 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
         return;
      }
      
-     // 2. Move (Player cannot move UP against gravity? User said "cannot move up")
-     if (direction.y < 0) {
-        return; 
-     }
+     // 2. Move (Player cannot move UP against gravity)
+     if (direction.y < 0) return;
 
      if (_gridManager == null) return;
      
-     // Special Rule: If pushing DOWN against a block, Attack/Dig it!
+     // Special Rule: If pushing DOWN against a block or tough crystal, Attack/Dig it!
      if (direction.y > 0 && direction.x == 0) {
-        int tx = gridX + 0;
+        int tx = gridX;
         int ty = gridY + 1;
-        if (_gridManager!.getBlockAt(tx, ty) != null) {
+        final targetBlock = _gridManager!.getBlockAt(tx, ty);
+        final targetCrystal = _gridManager!.getCrystalAt(tx, ty);
+        
+        if (targetBlock != null || (targetCrystal != null && targetCrystal.health > 1)) {
            attack();
            return;
         }
@@ -231,26 +232,31 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
      
      // 3. Horizontal Logic (Left / Right)
      if (direction.y == 0) {
-         int tx = gridX + direction.x.toInt();
-         int ty = gridY + direction.y.toInt();
-         final targetBlock = _gridManager!.getBlockAt(tx, ty);
+        int tx = gridX + direction.x.toInt();
+        int ty = gridY + direction.y.toInt();
+        final targetBlock = _gridManager!.getBlockAt(tx, ty);
 
-         if (targetBlock != null) {
-             // Block in front. Check above it for Climb.
-             // "如果砖块顶部没有其他砖块或者有水晶，角色都可以移动到砖块上方"
-             final blockAboveTarget = _gridManager!.getBlockAt(tx, ty - 1);
-              // No block above target. Now check headspace (above player).
-              final blockAbovePlayer = _gridManager!.getBlockAt(gridX, gridY - 1);
-              
-              if (blockAboveTarget == null && blockAbovePlayer == null) {
-                  // Both path and headspace are clear -> Auto Climb
-                  _moveQueue.add(direction); 
-              } else {
-                  // Blocked either at target height or above head -> Attack
-                  attack();
-              }
-             return; // Logic handled
-         }
+        if (targetBlock != null) {
+           // Block in front. Check above it for Climb.
+           final blockAboveTarget = _gridManager!.getBlockAt(tx, ty - 1);
+           final blockAbovePlayer = _gridManager!.getBlockAt(gridX, gridY - 1);
+           
+           if (blockAboveTarget == null && blockAbovePlayer == null) {
+              // Path clear -> Auto Climb
+              _moveQueue.add(direction); 
+           } else {
+              // Blocked -> Attack
+              attack();
+           }
+           return; 
+        }
+
+        // Check for tough crystal in front
+        final targetCrystal = _gridManager!.getCrystalAt(tx, ty);
+        if (targetCrystal != null && targetCrystal.health > 1) {
+           attack();
+           return;
+        }
      }
      
      _moveQueue.add(direction);
