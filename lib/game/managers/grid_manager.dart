@@ -24,11 +24,11 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
 
   void _updateLevelVariety() {
     // Standard pool is the first 7 colors (Red-Purple)
-    // We pick 4-7 colors from this set for variety this level
+    // We pick 3-6 colors from this set for variety this level
     final standardColors = GameColor.values.sublist(0, GameColor.values.length - 1);
     standardColors.shuffle(_random);
     
-    int count = 4 + _random.nextInt(4); // 4, 5, 6, or 7
+    int count = 3 + _random.nextInt(4); // 3, 4, 5, or 6
     if (count > standardColors.length) count = standardColors.length;
     
     _allowedColors = standardColors.sublist(0, count);

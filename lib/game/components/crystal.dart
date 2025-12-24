@@ -67,19 +67,20 @@ class Crystal extends PositionComponent {
         text: '$health',
         style: TextStyle(
           color: Colors.white,
-          fontSize: rect.width * 0.6,
+          fontSize: rect.width * 0.4, // Match block style
           fontWeight: FontWeight.bold,
           shadows: [
-            Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 4),
+            Shadow(color: Colors.black, blurRadius: 4),
           ],
         ),
       ),
       textDirection: TextDirection.ltr,
     );
     textPainter.layout();
+    // Position at Top-Left corner
     textPainter.paint(
       canvas, 
-      rect.center - Offset(textPainter.width / 2, textPainter.height / 2),
+      rect.topLeft + const Offset(4, 2),
     );
   }
 
