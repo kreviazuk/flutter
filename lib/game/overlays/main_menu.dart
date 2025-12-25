@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../geo_journey_game.dart';
+import '../managers/localization_manager.dart';
 
 class MainMenuOverlay extends StatefulWidget {
   final GeoJourneyGame game;
@@ -17,9 +18,8 @@ class MainMenuOverlay extends StatefulWidget {
 }
 
 class _MainMenuOverlayState extends State<MainMenuOverlay> {
-  // We check save data availability via parent or check inside?
-  // Passed as param is better to avoid async layout flicker
-  
+  final _loc = LocalizationManager();
+
   void _onContinue() {
      widget.game.loadAndContinueGame();
   }
@@ -30,16 +30,16 @@ class _MainMenuOverlayState extends State<MainMenuOverlay> {
        showDialog(
          context: context, 
          builder: (ctx) => AlertDialog(
-            title: const Text("Start New Game?"),
-            content: const Text("This will overwrite your current progress."),
+            title: Text(_loc.get('dialog_confirm_title')),
+            content: Text(_loc.get('dialog_confirm_content')),
             actions: [
-               TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+               TextButton(onPressed: () => Navigator.pop(ctx), child: Text(_loc.get('no'))),
                TextButton(
                  onPressed: () {
                     Navigator.pop(ctx);
                     widget.game.startNewGame();
                  }, 
-                 child: const Text("Confirm", style: TextStyle(color: Colors.red))
+                 child: Text(_loc.get('yes'), style: const TextStyle(color: Colors.red))
                ),
             ],
          )
@@ -49,29 +49,53 @@ class _MainMenuOverlayState extends State<MainMenuOverlay> {
      }
   }
 
+  void _showSettings() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(_loc.get('settings_title'), style: const TextStyle(color: Colors.white)),
+        backgroundColor: Colors.grey[900],
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+             Text(_loc.get('settings_language'), style: const TextStyle(color: Colors.white70)),
+             const SizedBox(height: 10),
+             Row(
+               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+               children: [
+                 ElevatedButton(
+                   onPressed: () { LocalizationManager().setLocale('zh'); Navigator.pop(ctx); },
+                   child: const Text('中文'),
+                 ),
+                 ElevatedButton(
+                   onPressed: () { LocalizationManager().setLocale('en'); Navigator.pop(ctx); },
+                   child: const Text('English'),
+                 ),
+               ],
+             )
+          ],
+        ),
+        actions: [
+           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("OK"))
+        ],
+      )
+    );
+  }
+
   void _showHelp() {
      showDialog(
        context: context,
        builder: (ctx) => AlertDialog(
-          title: const Text("How to Play", style: TextStyle(color: Colors.white)),
+          title: Text(_loc.get('btn_help'), style: const TextStyle(color: Colors.white)),
           backgroundColor: Colors.grey[900],
-          content: const SingleChildScrollView(
+          content: SingleChildScrollView(
             child: Text(
-              "1. Controls:\n"
-              "   - D-Pad / Arrow Buttons: Move & Climb\n"
-              "   - Red Button: Attack blocks & Tough carystals\n"
-              "   - Inventory Tap: Use crystals/items\n\n"
-              "2. Goal:\n"
-              "   - Dig deep, collect crystals.\n"
-              "   - Find the 'Bedrock Gate' to advance levels.\n\n"
-              "3. Mechanics:\n"
-              "   - Match 4 blocks to clear them.\n"
-              "   - Don't get crushed by falling blocks!\n"
-              "   - Bag upgrades automatically at score 50, 150, 300.",
-              style: TextStyle(color: Colors.white70),
+              _loc.get('dialog_help_content'),
+              style: const TextStyle(color: Colors.white70),
             ),
           ),
-          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Got it!"))],
+          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("OK"))],
        )
      );
   }
@@ -80,14 +104,11 @@ class _MainMenuOverlayState extends State<MainMenuOverlay> {
       showDialog(
        context: context,
        builder: (ctx) => AlertDialog(
-          title: const Text("About", style: TextStyle(color: Colors.white)),
+          title: Text(_loc.get('btn_about'), style: const TextStyle(color: Colors.white)),
           backgroundColor: Colors.grey[900],
-          content: const Text(
-            "Geo Journey: The Core Protocol\n"
-            "Version 1.0.0\n\n"
-            "Developed with Flutter & Flame.\n"
-            "AI Assistant: Antigravity",
-            style: TextStyle(color: Colors.white70),
+          content: Text(
+            _loc.get('dialog_about_content'),
+            style: const TextStyle(color: Colors.white70),
           ),
           actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Close"))],
        )
@@ -95,8 +116,7 @@ class _MainMenuOverlayState extends State<MainMenuOverlay> {
   }
 
   void _onExit() {
-    SystemNavigator.pop(); // Works on Mobile/Android
-    // For Web/Desktop, might not fully close but this is standard.
+    SystemNavigator.pop(); 
   }
 
   @override
@@ -111,42 +131,48 @@ class _MainMenuOverlayState extends State<MainMenuOverlay> {
       child: Container(
         // Dark overlay for readability
         color: Colors.black.withOpacity(0.5),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-               // Title
-               const Text(
-                 "GEO JOURNEY",
-                 style: TextStyle(
-                   fontFamily: 'Courier', 
-                   fontSize: 50, 
-                   fontWeight: FontWeight.w900,
-                   color: Colors.amber,
-                   shadows: [Shadow(blurRadius: 10, color: Colors.orange, offset: Offset(0,0))]
-                 ),
-               ),
-               const Text(
-                 "THE CORE PROTOCOL",
-                 style: TextStyle(
-                   fontSize: 20, 
-                   letterSpacing: 4,
-                   color: Colors.white70
-                 ),
-               ),
-               
-               const SizedBox(height: 60),
+        child: ValueListenableBuilder<String>(
+          valueListenable: _loc.currentLocale,
+          builder: (context, locale, child) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                   // Title
+                   Text(
+                     _loc.get('game_title'),
+                     style: const TextStyle(
+                       fontFamily: 'Courier', 
+                       fontSize: 50, 
+                       fontWeight: FontWeight.w900,
+                       color: Colors.amber,
+                       shadows: [Shadow(blurRadius: 10, color: Colors.orange, offset: Offset(0,0))]
+                     ),
+                   ),
+                   Text(
+                     _loc.get('game_subtitle'),
+                     style: const TextStyle(
+                       fontSize: 20, 
+                       letterSpacing: 4,
+                       color: Colors.white70
+                     ),
+                   ),
+                   
+                   const SizedBox(height: 60),
 
-               // Buttons
-               if (widget.hasSaveData)
-                 _buildMenuButton("CONTINUE", Icons.history, _onContinue),
-                 
-               _buildMenuButton("NEW GAME", Icons.play_arrow, _onNewGame),
-               _buildMenuButton("HELP", Icons.help_outline, _showHelp),
-               _buildMenuButton("ABOUT", Icons.info_outline, _showAbout),
-               _buildMenuButton("EXIT", Icons.exit_to_app, _onExit, isDestructive: true),
-            ],
-          ),
+                   // Buttons
+                   if (widget.hasSaveData)
+                     _buildMenuButton(_loc.get('btn_continue'), Icons.history, _onContinue),
+                     
+                   _buildMenuButton(_loc.get('btn_new_game'), Icons.play_arrow, _onNewGame),
+                   _buildMenuButton(_loc.get('btn_settings'), Icons.settings, _showSettings),
+                   _buildMenuButton(_loc.get('btn_help'), Icons.help_outline, _showHelp),
+                   _buildMenuButton(_loc.get('btn_about'), Icons.info_outline, _showAbout),
+                   _buildMenuButton(_loc.get('btn_exit'), Icons.exit_to_app, _onExit, isDestructive: true),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
@@ -156,7 +182,7 @@ class _MainMenuOverlayState extends State<MainMenuOverlay> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: SizedBox(
-        width: 200,
+        width: 240, // Slightly wider for translations
         height: 50,
         child: ElevatedButton.icon(
           onPressed: onPressed,

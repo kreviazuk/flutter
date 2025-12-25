@@ -9,6 +9,7 @@ import 'game_constants.dart';
 import 'dart:async' as async; // For debouncer
 import 'overlays/intro_crawl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'managers/localization_manager.dart';
 
 class GeoJourneyGame extends FlameGame {
   final Player player = Player(
@@ -29,6 +30,7 @@ class GeoJourneyGame extends FlameGame {
   @override
   Future<void> onLoad() async {
     super.onLoad();
+    await LocalizationManager().init();
     
     // Dynamic block size to fit screen width
     GameConstants.blockSize = size.x / GameConstants.columns;
