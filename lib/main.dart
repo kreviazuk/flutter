@@ -5,16 +5,18 @@ import 'game/overlays/game_hud.dart';
 import 'game/overlays/game_over_overlay.dart';
 import 'game/overlays/main_menu.dart';
 import 'game/overlays/intro_crawl.dart';
+import 'game/overlays/world_map_overlay.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(
     MaterialApp(
-      home: Scaffold(
-        body: GameWidget(
-          game: GeoJourneyGame(),
+      home: GameWidget<GeoJourneyGame>(
+        game: GeoJourneyGame(),
         overlayBuilderMap: {
           'MainMenu': (context, GeoJourneyGame game) => MainMenuOverlay(game: game, hasSaveData: game.hasSaveData),
           'IntroCrawl': (context, GeoJourneyGame game) => IntroCrawlOverlay(game: game, onFinish: game.onIntroFinish),
+          'WorldMap': (context, GeoJourneyGame game) => WorldMapOverlay(game: game),
           'GameHud': (context, GeoJourneyGame game) => GameHud(game: game),
           'GameOver': (context, GeoJourneyGame game) => GameOverOverlay(game: game),
           'BagFull': (context, GeoJourneyGame game) => const Center(
@@ -49,7 +51,6 @@ void main() {
           ),
         },
         initialActiveOverlays: const [],
-      ),
       ),
     ),
   );

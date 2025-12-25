@@ -37,7 +37,7 @@ class _MainMenuOverlayState extends State<MainMenuOverlay> {
                TextButton(
                  onPressed: () {
                     Navigator.pop(ctx);
-                    widget.game.startNewGame();
+                    widget.game.openWorldMap();
                  }, 
                  child: Text(_loc.get('yes'), style: const TextStyle(color: Colors.red))
                ),
@@ -45,7 +45,7 @@ class _MainMenuOverlayState extends State<MainMenuOverlay> {
          )
        );
      } else {
-       widget.game.startNewGame();
+       widget.game.openWorldMap();
      }
   }
 

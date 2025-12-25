@@ -73,18 +73,44 @@ class GeoJourneyGame extends FlameGame {
     overlays.add('MainMenu');
   }
 
+  // ... inside GeoJourneyGame ...
+
+  void openWorldMap() {
+    overlays.remove('MainMenu');
+    overlays.add('WorldMap');
+  }
+
+  void returnToMainMenuFromMap() async {
+    overlays.remove('WorldMap');
+    hasSaveData = await saveManager.hasSaveData();
+    overlays.add('MainMenu');
+  }
+
   void startNewGame() async {
+     // If called from Map, we are already ready
+     overlays.remove('WorldMap'); // Ensure map is gone
      await saveManager.clearSave();
      restartGame(); // Resets specific components
      
      // Remove Menu, Add HUD
-     overlays.remove('MainMenu');
+     overlays.remove('MainMenu'); // Just in case
      overlays.add('GameHud');
      
      resumeEngine();
      _setupAutoSave();
      saveGame(); // Initial save
   }
+
+  // ... rest of methods
+  void returnToMainMenu() async {
+    await saveGame();
+    pauseEngine();
+    overlays.remove('GameHud');
+    // Ensure "Continue" button will be active
+    hasSaveData = await saveManager.hasSaveData(); 
+    overlays.add('MainMenu');
+  }
+
 
   Future<void> loadAndContinueGame() async {
      final data = await saveManager.loadGame();
@@ -243,13 +269,4 @@ class GeoJourneyGame extends FlameGame {
     camera.stop();
     camera.viewfinder.position = Vector2(size.x / 2, player.position.y);
   }
-  void returnToMainMenu() async {
-    await saveGame();
-    pauseEngine();
-    overlays.remove('GameHud');
-    // Ensure "Continue" button will be active
-    hasSaveData = await saveManager.hasSaveData(); 
-    overlays.add('MainMenu');
-  }
-
 }
