@@ -6,6 +6,7 @@ import 'game/overlays/game_over_overlay.dart';
 import 'game/overlays/main_menu.dart';
 import 'game/overlays/intro_crawl.dart';
 import 'game/overlays/world_map_overlay.dart';
+import 'game/managers/localization_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,12 +20,12 @@ void main() async {
           'WorldMap': (context, GeoJourneyGame game) => WorldMapOverlay(game: game),
           'GameHud': (context, GeoJourneyGame game) => GameHud(game: game),
           'GameOver': (context, GeoJourneyGame game) => GameOverOverlay(game: game),
-          'BagFull': (context, GeoJourneyGame game) => const Center(
+          'BagFull': (context, GeoJourneyGame game) => Center(
              child: Material(
                color: Colors.transparent,
                child: Text(
-                 'Bag Full!',
-                 style: TextStyle(color: Colors.red, fontSize: 32, fontWeight: FontWeight.bold),
+                 LocalizationManager().get('bag_full'),
+                 style: const TextStyle(color: Colors.red, fontSize: 32, fontWeight: FontWeight.bold),
                ),
              ),
           ),
@@ -34,15 +35,15 @@ void main() async {
                child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      'Level Complete!',
-                      style: TextStyle(color: Colors.greenAccent, fontSize: 40, fontWeight: FontWeight.bold),
+                    Text(
+                      LocalizationManager().get('level_complete'),
+                      style: const TextStyle(color: Colors.greenAccent, fontSize: 40, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 20),
                     const CircularProgressIndicator(color: Colors.white),
                     const SizedBox(height: 20),
                     Text(
-                      '正在进入第${game.currentLevel + 1}层...', 
+                      '${LocalizationManager().get('next_level_loading')}${game.currentLevel + 1}...', 
                       style: const TextStyle(color: Colors.white, fontSize: 20),
                     ),
                   ],

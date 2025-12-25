@@ -205,63 +205,74 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
      if (healthNotifier.value <= 0) return;
      if (_isMoving) return; // Wait for move to finish
      
-     // 1. Check if facing matches input
-     bool isSameDirection = (facing - direction).length < 0.1;
+     // Always update facing immediately for responsiveness
+     facing = direction;
+     _updateSwordVisual();
      
-     if (!isSameDirection) {
-        // TURN only
-        facing = direction;
-        _updateSwordVisual();
-        return;
-     }
-     
-     // 2. Move (Player cannot move UP against gravity)
-     if (direction.y < 0) return;
-
      if (_gridManager == null) return;
-     
-     // Special Rule: If pushing DOWN against a block or tough crystal, Attack/Dig it!
-     if (direction.y > 0 && direction.x == 0) {
-        int tx = gridX;
-        int ty = gridY + 1;
-        final targetBlock = _gridManager!.getBlockAt(tx, ty);
-        final targetCrystal = _gridManager!.getCrystalAt(tx, ty);
+
+     // 1. Vertical Logic
+     if (direction.y != 0) {
+        // UP: Cannot move up, but can dig/attack up
+        if (direction.y < 0) {
+           final blockAbove = _gridManager!.getBlockAt(gridX, gridY - 1);
+           final crystalAbove = _gridManager!.getCrystalAt(gridX, gridY - 1);
+           
+           if (blockAbove != null || (crystalAbove != null && crystalAbove.health > 1)) {
+              attack(); // Breaks block above
+           }
+           return; // Cannot move up
+        }
         
-        if (targetBlock != null || (targetCrystal != null && targetCrystal.health > 1)) {
-           attack();
-           return;
+        // DOWN: Check if blocked. If blocked, Attack. If not, Move.
+        if (direction.y > 0) {
+           int tx = gridX;
+           int ty = gridY + 1;
+           final targetBlock = _gridManager!.getBlockAt(tx, ty);
+           final targetCrystal = _gridManager!.getCrystalAt(tx, ty);
+           
+           if (targetBlock != null || (targetCrystal != null && targetCrystal.health > 1)) {
+              attack();
+              return;
+           }
         }
      }
      
-     // 3. Horizontal Logic (Left / Right)
+     // 2. Horizontal Logic (Left / Right)
      if (direction.y == 0) {
         int tx = gridX + direction.x.toInt();
         int ty = gridY + direction.y.toInt();
         final targetBlock = _gridManager!.getBlockAt(tx, ty);
-
-        if (targetBlock != null) {
-           // Block in front. Check above it for Climb.
-           final blockAboveTarget = _gridManager!.getBlockAt(tx, ty - 1);
-           final blockAbovePlayer = _gridManager!.getBlockAt(gridX, gridY - 1);
-           
-           if (blockAboveTarget == null && blockAbovePlayer == null) {
-              // Path clear -> Auto Climb
-              _moveQueue.add(direction); 
-           } else {
-              // Blocked -> Attack
-              attack();
-           }
-           return; 
-        }
-
-        // Check for tough crystal in front
         final targetCrystal = _gridManager!.getCrystalAt(tx, ty);
-        if (targetCrystal != null && targetCrystal.health > 1) {
+
+        // Check Block in front
+        if (targetBlock != null || (targetCrystal != null && targetCrystal.health > 1)) {
+           // We are blocked horizontally.
+           // Optional: Check auto-climb if it was a block?
+           // Original logic had auto-climb. Let's preserve it for blocks ONLY.
+           
+           if (targetBlock != null) {
+              final blockAboveTarget = _gridManager!.getBlockAt(tx, ty - 1);
+              final blockAbovePlayer = _gridManager!.getBlockAt(gridX, gridY - 1);
+              final crystalAboveTarget = _gridManager!.getCrystalAt(tx, ty - 1);
+              
+              if (blockAboveTarget == null && blockAbovePlayer == null && crystalAboveTarget == null) {
+                 // Path clear -> Auto Climb (unless it's a queued move?)
+                 // Actually auto-climb logic is handled in `_moveQueue`.
+                 // We just queue the direction, and `_performLogicalMove` handles climb?
+                 // Wait, original logic checked here.
+                 _moveQueue.add(direction); 
+                 return;
+              }
+           }
+           
+           // If no climb, Attack!
            attack();
-           return;
+           return; 
         }
      }
      
+     // Queue the move (if not blocked)
      _moveQueue.add(direction);
   }
   
@@ -363,7 +374,7 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
     if (crystal.type == CrystalType.verticalDrill || crystal.type == CrystalType.aoeBlast) {
        if (inventoryNotifier.value >= maxInventoryTotal) {
           gameRef.showBagFullMessage();
-          return false;
+          return true; // Destroy item
        }
        specialInventory[crystal.type] = (specialInventory[crystal.type] ?? 0) + 1;
        inventoryNotifier.value++; 
@@ -374,7 +385,8 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
   
     if (inventoryNotifier.value >= maxInventoryTotal) {
       gameRef.showBagFullMessage();
-      return false; // Bag full
+      // Logic: Destroy crystal even if bag full
+      return true; // Return true to signal "collected/destroyed"
     }
     
     inventory[crystal.gameColor] = inventory[crystal.gameColor]! + 1;

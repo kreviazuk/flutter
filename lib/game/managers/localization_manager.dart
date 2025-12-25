@@ -7,13 +7,24 @@ class LocalizationManager {
   LocalizationManager._internal();
 
   final ValueNotifier<String> currentLocale = ValueNotifier('zh'); // Default to Chinese
+  final ValueNotifier<bool> hapticEnabled = ValueNotifier(true); // Default ON
   static const String _prefKey = 'geo_journey_locale';
+  static const String _hapticKey = 'geo_journey_haptic';
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     if (prefs.containsKey(_prefKey)) {
       currentLocale.value = prefs.getString(_prefKey)!;
     }
+    if (prefs.containsKey(_hapticKey)) {
+      hapticEnabled.value = prefs.getBool(_hapticKey)!;
+    }
+  }
+
+  Future<void> toggleHaptic(bool enabled) async {
+    hapticEnabled.value = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_hapticKey, enabled);
   }
 
   Future<void> setLocale(String code) async {
@@ -75,6 +86,7 @@ class LocalizationManager {
       'btn_challenge': 'START CHALLENGE',
       'map_locked': 'Locked',
       'map_unlocked': 'Completed',
+      'setting_haptic': 'Vibration',
     },
     'zh': {
       'game_title': '地心之旅',
@@ -124,6 +136,7 @@ class LocalizationManager {
       'btn_challenge': '开始挑战',
       'map_locked': '未解锁',
       'map_unlocked': '已完成',
+      'setting_haptic': '震动',
     }
   };
 }

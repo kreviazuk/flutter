@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:vibration/vibration.dart';
 import '../geo_journey_game.dart';
 import '../managers/localization_manager.dart';
 
@@ -73,7 +74,29 @@ class _MainMenuOverlayState extends State<MainMenuOverlay> {
                    child: const Text('English'),
                  ),
                ],
-             )
+             ),
+             const SizedBox(height: 20),
+             
+             // Haptic Toggle
+             ValueListenableBuilder<bool>(
+               valueListenable: _loc.hapticEnabled,
+               builder: (context, isHaptic, _) {
+                  return SwitchListTile(
+                     title: Text(LocalizationManager().get('setting_haptic'), style: const TextStyle(color: Colors.white)),
+                     value: isHaptic,
+                     onChanged: (val) {
+                        _loc.toggleHaptic(val);
+                        // Test vibration
+                        if (val) {
+                            Vibration.vibrate(duration: 50);
+                        }
+                     },
+                     activeColor: Colors.amber,
+                  );
+               }
+             ),
+             const SizedBox(height: 10),
+             const Text("Settings saved automatically", style: TextStyle(color: Colors.white54, fontSize: 12)),
           ],
         ),
         actions: [

@@ -5,6 +5,7 @@ import '../game_colors.dart';
 import '../components/crystal.dart';
 import 'package:flutter/foundation.dart';
 import '../managers/localization_manager.dart';
+import 'package:vibration/vibration.dart';
 
 class GameHud extends StatelessWidget {
   final GeoJourneyGame game;
@@ -162,59 +163,41 @@ class GameHud extends StatelessWidget {
               ),
             ),
     
-            // Controls (D-Pad Left)
+            // Centered D-Pad Controls
             Positioned(
-              bottom: 50,
-              left: 40,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    onPressed: () => game.player.handleInput(Vector2(0, -1)),
-                    icon: const Icon(Icons.arrow_upward, color: Colors.white, size: 40),
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        onPressed: () => game.player.handleInput(Vector2(-1, 0)),
-                        icon: const Icon(Icons.arrow_back, color: Colors.white, size: 40),
-                      ),
-                      const SizedBox(width: 40),
-                      IconButton(
-                        onPressed: () => game.player.handleInput(Vector2(1, 0)),
-                        icon: const Icon(Icons.arrow_forward, color: Colors.white, size: 40),
-                      ),
-                    ],
-                  ),
-                  IconButton(
-                    onPressed: () => game.player.handleInput(Vector2(0, 1)),
-                    icon: const Icon(Icons.arrow_downward, color: Colors.white, size: 40),
-                  ),
-                ],
+              bottom: 40,
+              left: 0, 
+              right: 0, 
+              child: Center(
+                child: SizedBox(
+                   width: 200,
+                   height: 200,
+                   child: Stack(
+                      children: [
+                        // UP
+                        Align(
+                          alignment: Alignment.topCenter,
+                          child: _buildDirBtn(Icons.arrow_upward, Vector2(0, -1), game),
+                        ),
+                        // LEFT
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: _buildDirBtn(Icons.arrow_back, Vector2(-1, 0), game),
+                        ),
+                        // RIGHT
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: _buildDirBtn(Icons.arrow_forward, Vector2(1, 0), game),
+                        ),
+                        // DOWN
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: _buildDirBtn(Icons.arrow_downward, Vector2(0, 1), game),
+                        ),
+                      ],
+                   ),
+                ),
               ),
-            ),
-    
-            // Attack Button (Right)
-            Positioned(
-               bottom: 80,
-               right: 40,
-               child: GestureDetector(
-                  onTap: () => game.player.attack(),
-                  child: Container(
-                     width: 80,
-                     height: 80,
-                     decoration: BoxDecoration(
-                        color: Colors.redAccent.withOpacity(0.8),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 4),
-                        boxShadow: [
-                           BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 4))
-                        ]
-                     ),
-                     child: const Icon(Icons.crisis_alert, color: Colors.white, size: 40),
-                  ),
-               ),
             ),
             
             // Debug Button
@@ -271,6 +254,37 @@ class GameHud extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildDirBtn(IconData icon, Vector2 direction, GeoJourneyGame game) {
+    return GestureDetector(
+      onTap: () {
+        if (LocalizationManager().hapticEnabled.value) {
+            Vibration.vibrate(duration: 15); // Light tap
+        }
+        game.player.handleInput(direction);
+      },
+      child: Container(
+        width: 65,
+        height: 65,
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.6), // Darker background for contrast
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.8), // Brighter border
+            width: 3 // Thicker border
+          ),
+          boxShadow: [
+             BoxShadow(
+               color: Colors.black.withOpacity(0.5),
+               blurRadius: 4,
+               offset: const Offset(2, 2)
+             )
+          ]
+        ),
+        child: Icon(icon, color: Colors.white, size: 40),
       ),
     );
   }
