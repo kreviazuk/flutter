@@ -4,6 +4,7 @@ import 'game/geo_journey_game.dart';
 import 'game/overlays/game_hud.dart';
 import 'game/overlays/game_over_overlay.dart';
 import 'game/overlays/main_menu.dart';
+import 'game/overlays/intro_crawl.dart';
 
 void main() {
   runApp(
@@ -13,6 +14,7 @@ void main() {
           game: GeoJourneyGame(),
         overlayBuilderMap: {
           'MainMenu': (context, GeoJourneyGame game) => MainMenuOverlay(game: game, hasSaveData: game.hasSaveData),
+          'IntroCrawl': (context, GeoJourneyGame game) => IntroCrawlOverlay(game: game, onFinish: game.onIntroFinish),
           'GameHud': (context, GeoJourneyGame game) => GameHud(game: game),
           'GameOver': (context, GeoJourneyGame game) => GameOverOverlay(game: game),
           'BagFull': (context, GeoJourneyGame game) => const Center(

@@ -7,6 +7,8 @@ import 'managers/save_manager.dart';
 import 'overlays/main_menu.dart';
 import 'game_constants.dart';
 import 'dart:async' as async; // For debouncer
+import 'overlays/intro_crawl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class GeoJourneyGame extends FlameGame {
   final Player player = Player(
@@ -51,8 +53,21 @@ class GeoJourneyGame extends FlameGame {
     
     // Check Save Data
     hasSaveData = await saveManager.hasSaveData();
+
+    // Check Intro
+    final prefs = await SharedPreferences.getInstance();
+    final bool introShown = prefs.getBool('geo_journey_intro_shown') ?? false;
     
-    // Show Menu
+    // Show Menu or Intro
+    if (!introShown) {
+       overlays.add('IntroCrawl');
+    } else {
+       overlays.add('MainMenu');
+    }
+  }
+
+  void onIntroFinish() {
+    overlays.remove('IntroCrawl');
     overlays.add('MainMenu');
   }
 
