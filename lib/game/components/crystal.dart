@@ -21,8 +21,10 @@ class Crystal extends PositionComponent {
     required Vector2 size,
     this.type = CrystalType.normal,
   }) : super(position: position, size: size) {
-     health = (gameColor == GameColor.brown) ? 5 : 1;
+     health = maxHealth;
   }
+  
+  int get maxHealth => (gameColor == GameColor.brown) ? 5 : 1;
 
   double fallDelay = 1.0; // Same as block now
   bool _isShaking = false;

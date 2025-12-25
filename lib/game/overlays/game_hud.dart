@@ -21,10 +21,30 @@ class GameHud extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-               IconButton(
-                 icon: const Icon(Icons.refresh, color: Colors.white),
-                 onPressed: game.restartGame,
-               ),
+                Row(
+                   mainAxisSize: MainAxisSize.min,
+                   children: [
+                     IconButton(
+                       icon: const Icon(Icons.home, color: Colors.cyanAccent, size: 28),
+                       onPressed: game.returnToMainMenu,
+                       tooltip: "Menu",
+                       style: IconButton.styleFrom(
+                         backgroundColor: Colors.black45,
+                         padding: const EdgeInsets.all(8),
+                       ),
+                     ),
+                     const SizedBox(width: 8),
+                     IconButton(
+                       icon: const Icon(Icons.refresh, color: Colors.white, size: 28),
+                       onPressed: game.restartGame,
+                       tooltip: "Restart",
+                        style: IconButton.styleFrom(
+                         backgroundColor: Colors.black45,
+                         padding: const EdgeInsets.all(8),
+                       ),
+                     ),
+                   ],
+                ),
                const SizedBox(height: 10),
                ValueListenableBuilder<int>(
                  valueListenable: game.player.healthNotifier,
@@ -81,29 +101,54 @@ class GameHud extends StatelessWidget {
               return ListenableBuilder(
                 listenable: Listenable.merge([game.player.inventoryNotifier, game.player.specialInventoryNotifier]),
                 builder: (context, child) {
+                  final currentTotal = game.player.inventoryNotifier.value;
+                  final maxTotal = game.player.maxInventoryTotal;
+                  
                   return SizedBox(
                     width: maxWidth,
-                    child: Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Normal Crystals
-                        ...GameColor.values.map((color) {
-                          final count = game.player.inventory[color] ?? 0;
-                          if (count == 0) return const SizedBox.shrink();
-                          return _buildCrateItem(color.color, Icons.diamond, count, () => game.player.useCrystal(color));
-                        }),
-                        // Special Crystals
-                        ...[CrystalType.verticalDrill, CrystalType.aoeBlast].map((type) {
-                           final count = game.player.specialInventory[type] ?? 0;
-                           if (count == 0) return const SizedBox.shrink();
-                           return _buildCrateItem(
-                             type == CrystalType.verticalDrill ? Colors.white : Colors.amber, 
-                             type == CrystalType.verticalDrill ? Icons.south : Icons.star, 
-                             count, 
-                             () => game.player.useSpecialCrystal(type)
-                           );
-                        }),
+                        // Capacity Text
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            "Bag: $currentTotal / $maxTotal",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: [
+                            // Normal Crystals
+                            ...GameColor.values.map((color) {
+                              final count = game.player.inventory[color] ?? 0;
+                              if (count == 0) return const SizedBox.shrink();
+                              return _buildCrateItem(color.color, Icons.diamond, count, () => game.player.useCrystal(color));
+                            }),
+                            // Special Crystals
+                            ...[CrystalType.verticalDrill, CrystalType.aoeBlast].map((type) {
+                               final count = game.player.specialInventory[type] ?? 0;
+                               if (count == 0) return const SizedBox.shrink();
+                               return _buildCrateItem(
+                                 type == CrystalType.verticalDrill ? Colors.white : Colors.amber, 
+                                 type == CrystalType.verticalDrill ? Icons.south : Icons.star, 
+                                 count, 
+                                 () => game.player.useSpecialCrystal(type)
+                               );
+                            }),
+                          ],
+                        ),
                       ],
                     ),
                   );

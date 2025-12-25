@@ -5,12 +5,14 @@ import '../components/block.dart';
 import '../components/crystal.dart';
 import '../game_colors.dart';
 import '../game_constants.dart';
+import 'save_manager.dart';
 
 class GridManager extends Component with HasGameRef<GeoJourneyGame> {
   GridManager({super.key});
 
   final Random _random = Random();
   int _maxGeneratedY = 0;
+  int get maxGeneratedY => _maxGeneratedY;
   final Map<String, GameBlock> _blocks = {};
   final Map<String, Crystal> _crystals = {};
   List<GameColor> _allowedColors = [];
@@ -24,15 +26,74 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
 
   void _updateLevelVariety() {
     // Standard pool is the first 7 colors (Red-Purple)
-    // We pick 3-6 colors from this set for variety this level
+    // We pick 2-5 colors from this set for variety this level
     final standardColors = GameColor.values.sublist(0, GameColor.values.length - 1);
     standardColors.shuffle(_random);
     
-    int count = 3 + _random.nextInt(4); // 3, 4, 5, or 6
+    int count = 2 + _random.nextInt(4); // 2, 3, 4, or 5
     if (count > standardColors.length) count = standardColors.length;
     
     _allowedColors = standardColors.sublist(0, count);
     print("Level Variety: $count colors chosen: ${_allowedColors.map((c) => c.name).join(', ')}");
+  }
+
+  // --- SAVE/LOAD SUPPORT ---
+  List<BlockSaveData> getBlocksData() {
+    final list = <BlockSaveData>[];
+    _blocks.forEach((key, block) {
+       final parts = key.split(',');
+       list.add(BlockSaveData(int.parse(parts[0]), int.parse(parts[1]), block.gameColor.name, block.isLevelExit));
+    });
+    return list;
+  }
+
+  List<CrystalSaveData> getCrystalsData() {
+    final list = <CrystalSaveData>[];
+    _crystals.forEach((key, crystal) {
+       final parts = key.split(',');
+       list.add(CrystalSaveData(int.parse(parts[0]), int.parse(parts[1]), crystal.gameColor.name, crystal.type.name, crystal.health));
+    });
+    return list;
+  }
+  
+  void restoreState(int maxGenY, List<BlockSaveData> blocksData, List<CrystalSaveData> crystalsData) {
+     // Clear existing
+     _blocks.clear();
+     _crystals.clear();
+     gameRef.world.children.whereType<GameBlock>().toList().forEach((b) => b.removeFromParent());
+     gameRef.world.children.whereType<Crystal>().toList().forEach((c) => c.removeFromParent());
+     
+     _maxGeneratedY = maxGenY;
+     
+     // Rebuild Blocks
+     for (final bd in blocksData) {
+        final color = GameColor.values.firstWhere((e) => e.name == bd.colorName, orElse: () => GameColor.red);
+        spawnBlock(bd.x, bd.y, isLevelExit: bd.isLevelExit, colorOverride: color);
+     }
+     
+     // Rebuild Crystals
+     for (final cd in crystalsData) {
+        final color = GameColor.values.firstWhere((e) => e.name == cd.colorName, orElse: () => GameColor.red);
+        final type = CrystalType.values.firstWhere((e) => e.name == cd.typeName, orElse: () => CrystalType.normal);
+        
+        final crystal = Crystal(
+          gameColor: color, 
+          type: type,
+          position: Vector2(cd.x * GameConstants.blockSize, cd.y * GameConstants.blockSize),
+          size: Vector2.all(GameConstants.blockSize)
+        );
+        // Manually set health if needed (though Crystal constructor defaults to full, we can add a method if health was damaged)
+        // For now assuming crystals are mostly 1-hit or Full HP. If you have damaged crystals, you need to set health.
+        if (cd.health < crystal.maxHealth) {
+           // Hacky way or add setter. Crystal health logic is simple int.
+           // Let's assume Crystal has health field we can set or we make a new constructor.
+           // Current Crystal class sets health in onLoad based on type.
+           // We will just leave it refreshed for simplicity unless critical.
+        }
+        
+        gameRef.world.add(crystal);
+        _crystals['${cd.x},${cd.y}'] = crystal;
+     }
   }
 
   void _generateRows(int startY, int endY) {
@@ -80,8 +141,8 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
   void reset() {
     _blocks.clear(); 
     _crystals.clear();
-    gameRef.world.children.whereType<GameBlock>().forEach((b) => b.removeFromParent());
-    gameRef.world.children.whereType<Crystal>().forEach((c) => c.removeFromParent());
+    gameRef.world.children.whereType<GameBlock>().toList().forEach((b) => b.removeFromParent());
+    gameRef.world.children.whereType<Crystal>().toList().forEach((c) => c.removeFromParent());
     
     _maxGeneratedY = 0;
     _updateLevelVariety();

@@ -15,7 +15,7 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
   int gridY = 0;
   
   // Inventory
-  static const int maxInventoryTotal = 20;
+  int maxInventoryTotal = 8; // Initial capacity
   final Map<GameColor, int> inventory = {
     for (var color in GameColor.values) color: 0
   };
@@ -55,6 +55,9 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
   @override
   void onLoad() {
     super.onLoad();
+    
+    // Listen for score updates to upgrade bag
+    scoreNotifier.addListener(_checkBagUpgrade);
     
     // Force player to be exactly in the center column
     gridX = GameConstants.columns ~/ 2;
@@ -549,6 +552,7 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
     specialInventory.updateAll((key, value) => 0);
     inventoryNotifier.value = 0;
     specialInventoryNotifier.value = 0;
+    maxInventoryTotal = 8; // Reset capacity
     
     // Reset Physics State
     gridX = GameConstants.columns ~/ 2;
@@ -610,6 +614,75 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
     inventoryNotifier.value = specialCount + normalCount;
     
     print("Debug Cheat Activated: Inventory Filled!");
+  }
+
+  void _checkBagUpgrade() {
+      final score = scoreNotifier.value;
+      int newMax = 8;
+      
+      // Upgrade Milestones
+      if (score >= 300) newMax = 15;
+      else if (score >= 150) newMax = 12;
+      else if (score >= 50) newMax = 10;
+      
+      if (newMax > maxInventoryTotal) {
+          maxInventoryTotal = newMax;
+          print("Bag Upgraded! New Capacity: $maxInventoryTotal");
+          
+          // Show Upgrade Visual (Text)
+          final text = TextComponent(
+            text: 'BAG UPGRADED!\nCapacity: $maxInventoryTotal',
+            textRenderer: TextPaint(
+              style: const TextStyle(
+                color: Color(0xFFFFD700), // Gold
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                shadows: [Shadow(blurRadius: 4, color: Colors.black, offset: Offset(2,2))],
+              ),
+            ),
+            anchor: Anchor.center,
+            position: gameRef.size / 2, 
+            priority: 100,
+          );
+          
+          gameRef.camera.viewport.add(text); // Add to viewport so it stays on screen
+          
+          // Effect on Player
+          _playUpgradeEffect();
+          
+          Future.delayed(const Duration(seconds: 3), () {
+             text.removeFromParent();
+          });
+      }
+  }
+
+  void _playUpgradeEffect() {
+     // Flash Gold
+      final body = children.whereType<CircleComponent>().firstOrNull;
+      if (body != null) {
+        body.add(
+          ColorEffect(
+            Colors.yellow,
+            EffectController(
+              duration: 0.5,
+              reverseDuration: 0.5,
+              repeatCount: 2,
+            ),
+            opacityTo: 0.8,
+          )
+        );
+      }
+  }
+  
+  void restorePosition(int x, int y, Vector2 face) {
+      gridX = x;
+      gridY = y;
+      facing = face;
+      position = _getPixelPosition(gridX, gridY);
+      _targetPosition = position.clone();
+      _isMoving = false;
+      _moveQueue.clear();
+      _updateSwordVisual();
   }
 
   Vector2 _getPixelPosition(int x, int y) {
