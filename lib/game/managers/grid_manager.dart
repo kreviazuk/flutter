@@ -230,7 +230,7 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
         for (final p in groupPoints) {
            final b = _blocks['${p.x},${p.y}'];
            if (b != null) {
-              b.startShake(dt); // Decrements timer and shakes
+              b.startShake(_gravityStep); // Use correct time step for logic update
               if (b.fallDelay <= 0) canFall = true;
            }
         }
@@ -308,7 +308,7 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
           }
 
           if (!isSupported) {
-            crystal.startShake(dt);
+            crystal.startShake(_gravityStep);
             if (crystal.fallDelay <= 0) {
               if (hitsPlayer) {
                 // Hits player: Collect normally NO damage
@@ -435,6 +435,8 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
       newX * GameConstants.blockSize,
       newY * GameConstants.blockSize,
     );
+    // Eliminate delay for blocks being dragged down
+    block.fallDelay = 0;
   }
   
   void _moveCrystal(Crystal crystal, int oldX, int oldY, int newX, int newY) {
@@ -445,6 +447,7 @@ class GridManager extends Component with HasGameRef<GeoJourneyGame> {
       newX * GameConstants.blockSize,
       newY * GameConstants.blockSize,
     );
+    crystal.fallDelay = 0;
   }
 
 
