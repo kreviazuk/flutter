@@ -621,9 +621,13 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
       int newMax = 8;
       
       // Upgrade Milestones
-      if (score >= 300) newMax = 15;
-      else if (score >= 150) newMax = 12;
-      else if (score >= 50) newMax = 10;
+      // Upgrade Milestones (New Logic)
+      if (score >= 12000) newMax = 20;
+      else if (score >= 10000) newMax = 18;
+      else if (score >= 7500) newMax = 16;
+      else if (score >= 5000) newMax = 14;
+      else if (score >= 3000) newMax = 12;
+      else if (score >= 1500) newMax = 10;
       
       if (newMax > maxInventoryTotal) {
           maxInventoryTotal = newMax;
