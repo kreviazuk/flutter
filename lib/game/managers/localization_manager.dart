@@ -87,6 +87,7 @@ class LocalizationManager {
       'map_locked': 'Locked',
       'map_unlocked': 'Completed',
       'setting_haptic': 'Vibration',
+      'btn_revive': 'REVIVE (AD)',
     },
     'zh': {
       'game_title': '地心之旅',
@@ -137,6 +138,7 @@ class LocalizationManager {
       'map_locked': '未解锁',
       'map_unlocked': '已完成',
       'setting_haptic': '震动',
+      'btn_revive': '复活 (广告)',
     }
   };
 }

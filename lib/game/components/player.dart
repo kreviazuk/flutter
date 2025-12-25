@@ -558,6 +558,30 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
     _targetPosition = position.clone();
   }
 
+  void onRevive() {
+     // Remove all effects from Player component itself
+    removeAll(children.whereType<Effect>());
+    
+    // Reset Player Transform
+    scale = Vector2.all(1.0);
+    angle = 0;
+    
+    // Reset Visual Container and its children
+    if (children.contains(_visualContainer)) {
+       _visualContainer.scale = Vector2.all(1.0);
+       _visualContainer.angle = 0;
+       _visualContainer.removeAll(_visualContainer.children.whereType<Effect>());
+       
+       for (final child in _visualContainer.children) {
+          child.removeAll(child.children.whereType<Effect>());
+          // Reset color effects which might be indefinite?
+          if (child is ShapeComponent) {
+             child.paint.colorFilter = null; 
+          }
+       }
+    }
+  }
+
   void reset() {
     healthNotifier.value = 100;
     inventory.updateAll((key, value) => 0);
@@ -574,17 +598,7 @@ class Player extends PositionComponent with HasGameRef<GeoJourneyGame> {
     _moveQueue.clear();
     _targetPosition = position.clone();
     
-    // Reset Visuals (from Death Animation)
-    scale = Vector2.all(1.0);
-    angle = 0;
-    
-    // Remove all temporary effects
-    removeAll(children.whereType<Effect>());
-    
-    // Also reset children color effects if any
-    for (final child in children) {
-       child.removeAll(child.children.whereType<Effect>());
-    }
+    onRevive();
   }
   
   void useCrystal(GameColor color) {

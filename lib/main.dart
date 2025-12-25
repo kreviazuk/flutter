@@ -8,8 +8,12 @@ import 'game/overlays/intro_crawl.dart';
 import 'game/overlays/world_map_overlay.dart';
 import 'game/managers/localization_manager.dart';
 
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await MobileAds.instance.initialize();
+  
   runApp(
     MaterialApp(
       home: GameWidget<GeoJourneyGame>(

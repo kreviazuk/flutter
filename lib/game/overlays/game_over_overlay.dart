@@ -37,6 +37,23 @@ class GameOverOverlay extends StatelessWidget {
                   style: const TextStyle(color: Colors.white, fontSize: 18),
                 ),
                 const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    game.adManager.showRewardedAd(
+                      onUserEarnedReward: () {
+                        game.revivePlayer();
+                      }
+                    );
+                  },
+                  icon: const Icon(Icons.video_library, color: Colors.yellow),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  ),
+                  label: Text(LocalizationManager().get('btn_revive')),
+                ),
+                const SizedBox(height: 10),
                 ElevatedButton(
                   onPressed: game.restartGame,
                   style: ElevatedButton.styleFrom(

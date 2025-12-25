@@ -10,6 +10,7 @@ import 'dart:async' as async; // For debouncer
 import 'overlays/intro_crawl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'managers/localization_manager.dart';
+import 'managers/ad_manager.dart';
 
 class GeoJourneyGame extends FlameGame {
   final Player player = Player(
@@ -27,9 +28,12 @@ class GeoJourneyGame extends FlameGame {
   @override
   Color backgroundColor() => const Color(0xFF1a1a1a); // Dark background
 
+  final AdManager adManager = AdManager(); 
+
   @override
   Future<void> onLoad() async {
     super.onLoad();
+    adManager.loadRewardedAd(); // Preload ad
     await LocalizationManager().init();
     
     // Dynamic block size to fit screen width
@@ -226,6 +230,31 @@ class GeoJourneyGame extends FlameGame {
     pauseEngine();
     overlays.remove('GameHud');
     overlays.add('GameOver');
+  }
+
+  void revivePlayer() {
+    print("Player Revived via Ad!");
+    
+    // 1. Restore Status
+    player.healthNotifier.value = 20;
+    
+    // Fix: Reset player visuals (scale/rotation from death animation)
+    player.onRevive(); // Handles effects, scale, and angle reset internally
+    
+    // 2. Clear Safe Zone (Blast area around player so they aren't instantly crushed)
+    final gridManager = world.children.whereType<GridManager>().firstOrNull;
+    if (gridManager != null) {
+       gridManager.clearArea(player.gridX, player.gridY, 2); // Clear 2-block radius
+    }
+    
+    // 3. UI and State
+    overlays.remove('GameOver');
+    overlays.add('GameHud');
+    
+    // 4. Resume
+    resumeEngine();
+    _setupAutoSave(); // Re-bind auto save if needed
+    saveGame(); // Save immediately to prevent data loss
   }
   
   void nextLevel() {
