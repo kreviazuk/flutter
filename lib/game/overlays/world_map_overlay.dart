@@ -8,7 +8,7 @@ class WorldMapOverlay extends StatelessWidget {
 
   const WorldMapOverlay({super.key, required this.game});
 
-  void _onTrophyTap(BuildContext context, ChallengeData challenge) {
+  void _onChallengeTap(BuildContext context, ChallengeData challenge) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -40,8 +40,7 @@ class WorldMapOverlay extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
-              game.startNewGame(); // Start game normally
-              // In future we can pass challenge specific params
+              game.startNewGame(); 
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.amber,
@@ -56,111 +55,75 @@ class WorldMapOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Simulated large map width
-    const double mapWidth = 1200.0;
-    const double mapHeight = 600.0;
-
     return Scaffold(
-      backgroundColor: Colors.blue[800], // Ocean color
+      backgroundColor: const Color(0xFF1a1a1a), // Dark background matching game
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => game.returnToMainMenuFromMap(),
+        ),
+        title: Text(
+          LocalizationManager().get('game_title'), // Or a new 'World Map' key if available
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+      ),
       body: Center(
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.white, width: 4),
-            borderRadius: BorderRadius.circular(10),
-            color: const Color(0xFF4FA4F4), // Lighter ocean blue
-          ),
-          width: MediaQuery.of(context).size.width * 0.9,
-          height: MediaQuery.of(context).size.height * 0.8,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: mapWidth,
-              height: mapHeight,
-              child: Stack(
-                children: [
-                   // Map Background (Placeholder Continents)
-                   // Asia / Europe
-                   Positioned(
-                     left: 600, top: 100,
-                     child: _buildContinentShape(300, 250, Colors.green),
-                   ),
-                   // Africa
-                   Positioned(
-                     left: 550, top: 350,
-                     child: _buildContinentShape(200, 200, Colors.green[600]!),
-                   ),
-                   // Americas
-                   Positioned(
-                     left: 150, top: 100,
-                     child: _buildContinentShape(250, 400, Colors.green[700]!),
-                   ),
-                   // Australia
-                   Positioned(
-                     left: 950, top: 400,
-                     child: _buildContinentShape(150, 120, Colors.green[400]!),
-                   ),
-                   // Antarctica
-                   Positioned(
-                     left: 400, top: 550,
-                     child: _buildContinentShape(500, 50, Colors.white),
-                   ),
-
-                   // Trophies
-                   ...gameChallenges.map((challenge) {
-                      return Positioned(
-                         left: challenge.mapX * mapWidth,
-                         top: challenge.mapY * mapHeight,
-                         child: GestureDetector(
-                           onTap: () => _onTrophyTap(context, challenge),
-                           child: Column(
-                             children: [
-                               const Icon(Icons.emoji_events, color: Colors.amber, size: 40, 
-                                 shadows: [Shadow(color: Colors.black, blurRadius: 4)]
-                               ),
-                               Container(
-                                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                 decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(4)),
-                                 child: Text(
-                                   "${challenge.targetScore}", 
-                                   style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)
-                                 ),
-                               ),
-                             ],
-                           ),
-                         ),
-                      );
-                   }),
-                   
-                   // Back Button
-                   Positioned(
-                     top: 20, left: 20,
-                     child: FloatingActionButton(
-                       backgroundColor: Colors.black54,
-                       onPressed: () {
-                          // Close map, go back to main menu
-                          // Since overlay management is rigid, we might need a method in Game
-                          game.returnToMainMenuFromMap();
-                       },
-                       child: const Icon(Icons.arrow_back, color: Colors.white),
-                     ),
-                   ),
-                ],
-              ),
-            ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: ListView.builder(
+            padding: const EdgeInsets.all(20),
+            itemCount: gameChallenges.length,
+            itemBuilder: (context, index) {
+              final challenge = gameChallenges[index];
+              return Card(
+                color: Colors.white.withOpacity(0.05),
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  leading: const Icon(Icons.public, color: Colors.blueAccent, size: 40),
+                  title: Text(
+                    LocalizationManager().get(challenge.translationKey),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(
+                    "${LocalizationManager().get('challenge_target')}${challenge.targetScore}",
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                       Column(
+                         mainAxisAlignment: MainAxisAlignment.center,
+                         crossAxisAlignment: CrossAxisAlignment.end,
+                         children: [
+                           const Icon(Icons.emoji_events, color: Colors.amber, size: 20),
+                           Text(
+                             "${challenge.bagReward}",
+                             style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold),
+                           )
+                         ],
+                       ),
+                       const SizedBox(width: 16),
+                       const Icon(Icons.chevron_right, color: Colors.white54),
+                    ],
+                  ),
+                  onTap: () => _onChallengeTap(context, challenge),
+                ),
+              );
+            },
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildContinentShape(double width, double height, Color color) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(30), // Rounded organic shape
-        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)]
       ),
     );
   }

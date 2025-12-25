@@ -145,7 +145,7 @@ class GameBlock extends PositionComponent with HasGameRef<GeoJourneyGame> {
         text: '$health',
         style: TextStyle(
           color: Colors.white,
-          fontSize: rect.width * 0.3, // Reduce font size further
+          fontSize: rect.width * 0.6, // Larger font size
           fontWeight: FontWeight.bold,
           shadows: [
             Shadow(color: Colors.black, blurRadius: 4),
@@ -153,14 +153,19 @@ class GameBlock extends PositionComponent with HasGameRef<GeoJourneyGame> {
         ),
       ),
       textDirection: TextDirection.ltr,
-      textAlign: TextAlign.left,
+      textAlign: TextAlign.center,
     );
     textPainter.layout();
     
-    // Draw closer to the top-left edge
+    // Draw centered
+    final offset = Offset(
+      (rect.width - textPainter.width) / 2,
+      (rect.height - textPainter.height) / 2,
+    );
+
     textPainter.paint(
       canvas, 
-      const Offset(3, 1), 
+      offset, 
     );
   }
 
